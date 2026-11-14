@@ -1,6 +1,6 @@
 Privacy Policy
 
-Effective date: [FILL IN BEFORE SUBMISSION]
+Effective date: 14 November 2026
 
 This app ("Ludo") is a board game you can play on one device or online with friends.
 
@@ -14,4 +14,4 @@ Children: The app does not knowingly collect personal information from anyone, i
 
 Changes: If this policy changes, the updated version will be published in the app and at the URL listed on the App Store.
 
-Contact: [YOUR SUPPORT EMAIL]
+Contact: {{SUPPORT_EMAIL}}

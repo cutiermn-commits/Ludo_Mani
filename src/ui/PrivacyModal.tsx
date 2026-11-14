@@ -6,7 +6,7 @@ import { UI } from './theme';
 // App Store Review Guideline 5.1.1(i) requires the policy both in App Store Connect and inside the app.
 export const PRIVACY_TEXT = `Privacy Policy
 
-Effective date: [FILL IN BEFORE SUBMISSION]
+Effective date: 14 November 2026
 
 This app ("Ludo") is a board game you can play on one device or online with friends.
 
@@ -20,7 +20,7 @@ Children: The app does not knowingly collect personal information from anyone, i
 
 Changes: If this policy changes, the updated version will be published in the app and at the URL listed on the App Store.
 
-Contact: [YOUR SUPPORT EMAIL]`;
+Contact: cutiermn@gmail.com`;
 
 export function PrivacyModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   return (

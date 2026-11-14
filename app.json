@@ -8,7 +8,7 @@
     "userInterfaceStyle": "dark",
     "backgroundColor": "#0F1B2D",
     "ios": {
-      "bundleIdentifier": "com.yourcompany.ludo",
+      "bundleIdentifier": "com.ludomani.app",
       "supportsTablet": true,
       "requireFullScreen": true,
       "config": {
@@ -16,7 +16,7 @@
       }
     },
     "android": {
-      "package": "com.yourcompany.ludo",
+      "package": "com.ludomani.app",
       "adaptiveIcon": {
         "backgroundColor": "#0F1B2D",
         "foregroundImage": "./assets/android-icon-foreground.png",

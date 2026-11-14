@@ -26,7 +26,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "test": "node --import tsx --test src/engine/*.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "sync-privacy": "node scripts/sync-privacy.mjs"
   },
   "private": true
 }

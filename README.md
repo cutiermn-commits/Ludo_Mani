@@ -37,7 +37,8 @@ Ludo for 2–4 players:
 | `src/ui/*` | Menu, local game, online lobby/game, shared board view, privacy policy |
 | `server/` | WebSocket game server, tests, Dockerfile |
 | `store/` | App Store listing draft + screenshots |
-| `PRIVACY.md` | Privacy policy to host publicly (keep identical to `src/ui/PrivacyModal.tsx`) |
+| `PRIVACY.md` + `site.config.json` | Single source for the privacy policy and support email. Run `npm run sync-privacy` after editing |
+| `docs/` | Generated public pages (GitHub Pages): `index.html` = Support URL, `privacy.html` = Privacy Policy URL |
 
 ### Computer player strength (measured, not estimated)
 Two-player games with seeded dice, colours alternated, 1,000 games per pairing:
