@@ -10,13 +10,13 @@
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_SERVER_URL": "wss://REPLACE-WITH-YOUR-SERVER-HOST"
+        "EXPO_PUBLIC_SERVER_URL": "wss://ludo-mani.onrender.com"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_SERVER_URL": "wss://REPLACE-WITH-YOUR-SERVER-HOST"
+        "EXPO_PUBLIC_SERVER_URL": "wss://ludo-mani.onrender.com"
       }
     }
   },
