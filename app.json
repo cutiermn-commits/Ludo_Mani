@@ -27,12 +27,6 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    },
-    "extra": {
-      "eas": {
-        "projectId": "fe64cd6c-90f0-4771-b5f1-c2f62a01bb83"
-      }
-    },
-    "owner": "cutiermns-team"
+    }
   }
 }
