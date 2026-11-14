@@ -27,7 +27,8 @@
     "web": "expo start --web",
     "test": "node --import tsx --test src/engine/*.test.ts",
     "typecheck": "tsc --noEmit",
-    "sync-privacy": "node scripts/sync-privacy.mjs"
+    "sync-privacy": "node scripts/sync-privacy.mjs",
+    "build:web": "node scripts/build-web.mjs"
   },
   "private": true
 }

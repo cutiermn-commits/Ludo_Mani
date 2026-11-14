@@ -1,12 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, ActivityIndicator, Alert, Pressable, Share, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { ScrollView, ActivityIndicator, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { Color } from '../engine/board';
 import { Difficulty, Rules, currentPlayer } from '../engine/game';
 import { ROOM_CODE_ALPHABET, ROOM_CODE_LENGTH, SeatView } from '../net/protocol';
 import { SERVER_URL, useOnlineRoom } from '../net/useOnlineRoom';
 import { GameView } from './GameView';
 import { DIFFICULTY_LABEL, RULE_LABELS } from './MenuScreen';
+import { ShareResult, confirmAction, shareInvite, webJoinUrl } from './platform';
 import { LABEL, PALETTE, UI } from './theme';
+
+// Public web address of the game, used in invites sent from the native apps.
+const WEB_URL: string | undefined = process.env.EXPO_PUBLIC_WEB_URL;
+
+function inviteUrl(code: string): string | undefined {
+  return webJoinUrl(code) ?? (WEB_URL ? `${WEB_URL.replace(/\/$/, '')}/?join=${code}` : undefined);
+}
 
 const NEXT_SEAT: Record<string, { kind: 'bot' | 'open'; difficulty?: Difficulty }> = {
   open: { kind: 'bot', difficulty: 'easy' },
@@ -36,10 +44,17 @@ function useCountdown(msLeft: number | null, key: unknown): number | null {
   return left;
 }
 
-export function OnlineScreen({ onExit }: { onExit: () => void }) {
+export function OnlineScreen({ onExit, joinCode }: { onExit: () => void; joinCode?: string | null }) {
   const online = useOnlineRoom();
   const { room, me, status, error } = online;
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState(joinCode ?? '');
+  const [shared, setShared] = useState<ShareResult | null>(null);
+
+  // Opened from an invite link (web "?join=CODE"): join straight away.
+  useEffect(() => {
+    if (joinCode && joinCode.length === ROOM_CODE_LENGTH && SERVER_URL) online.join(joinCode);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const secondsLeft = useCountdown(room?.turnMsLeft ?? null, room?.state);
 
   const leave = () => {
@@ -71,10 +86,7 @@ export function OnlineScreen({ onExit }: { onExit: () => void }) {
         onExit={() =>
           room.state!.phase === 'over'
             ? leave()
-            : Alert.alert('Leave game?', 'A computer player will take over your colour.', [
-                { text: 'Stay', style: 'cancel' },
-                { text: 'Leave', style: 'destructive', onPress: leave },
-              ])
+            : confirmAction('Leave game?', 'A computer player will take over your colour.', 'Leave', leave)
         }
       />
     );
@@ -90,10 +102,12 @@ export function OnlineScreen({ onExit }: { onExit: () => void }) {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Room code ${room.code.split('').join(' ')}. Tap to share.`}
-          onPress={() => Share.share({ message: `Join my Ludo game with code ${room.code}` })}
+          onPress={async () => setShared(await shareInvite(`Join my Ludo game! Room code: ${room.code}`, inviteUrl(room.code)))}
         >
           <Text style={styles.code}>{room.code}</Text>
-          <Text style={styles.hint}>Tap to share with friends</Text>
+          <Text style={styles.hint}>
+            {shared === 'copied' ? 'Invite link copied – paste it to your friends' : shared === 'failed' ? 'Tell your friends this code' : 'Tap to share an invite with friends'}
+          </Text>
         </Pressable>
 
         <View style={styles.seats}>

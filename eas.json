@@ -10,13 +10,15 @@
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_SERVER_URL": "wss://ludo-mani.onrender.com"
+        "EXPO_PUBLIC_SERVER_URL": "wss://ludo-mani.onrender.com",
+        "EXPO_PUBLIC_WEB_URL": "https://cutiermn-commits.github.io/ludo_mani/play"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_SERVER_URL": "wss://ludo-mani.onrender.com"
+        "EXPO_PUBLIC_SERVER_URL": "wss://ludo-mani.onrender.com",
+        "EXPO_PUBLIC_WEB_URL": "https://cutiermn-commits.github.io/ludo_mani/play"
       }
     }
   },

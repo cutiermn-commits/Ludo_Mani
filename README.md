@@ -1,4 +1,4 @@
-# Ludo: iOS app (Expo / React Native) + online game server
+# Ludo: iOS, Android and web (Expo / React Native) + online game server
 
 Ludo for 2–4 players:
 - **On one device**: pass-and-play, with any seat played by the computer (Easy / Medium / Hard).
@@ -50,6 +50,27 @@ Two-player games with seeded dice, colours alternated, 1,000 games per pairing:
 | Hard vs Medium | 54.6% (≈56% after tuning, 2,000 games) |
 
 Ludo is dominated by dice luck, so even a much smarter player wins only somewhat more often. Hard plans one move ahead using capture probabilities. A deeper search would add only a little strength.
+
+## Platforms
+
+One codebase builds all three:
+
+| Platform | How it ships | Command |
+|---|---|---|
+| **Web** (phone, desktop and TV browsers) | Static site in `docs/play/`, served by GitHub Pages at https://cutiermn-commits.github.io/ludo_mani/play/ | `npm run build:web`, then commit and push `docs/play` |
+| **iOS** (App Store) | EAS Build + Submit | `npx eas-cli@latest build --platform ios --profile production` |
+| **Android** (Google Play) | EAS Build produces an `.aab` for the Play Console | `npx eas-cli@latest build --platform android --profile production` |
+
+**Web extras:**
+- Invite links `…/play/?join=CODE` join a room in one tap; native apps share the same link, so friends without the app can join in a browser.
+- Keyboard and TV-remote controls: Space/Enter roll or move, arrows choose a token, 1–4 move a token, Tab moves between buttons.
+- Dice and text scale up on large screens.
+- The server address comes from `eas.json` (production `EXPO_PUBLIC_SERVER_URL`), so web and native always use the same server.
+- The web base path comes from `site.config.json` → `webUrl`.
+
+**Android notes:**
+- Package `com.ludomani.app` (`app.json`). Adaptive icon assets are in `assets/android-icon-*.png`; the artwork sits inside the 66dp safe circle.
+- Google Play needs its own developer account. The first upload to the Play Console is usually done by hand; after that, `eas submit --platform android` can upload with a Google service-account key.
 
 ## Develop
 

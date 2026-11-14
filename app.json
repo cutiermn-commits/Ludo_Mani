@@ -26,7 +26,12 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "name": "Ludo",
+      "shortName": "Ludo",
+      "themeColor": "#0F1B2D",
+      "backgroundColor": "#0F1B2D",
+      "description": "The classic board game: play online with friends, on one device, or against the computer."
     },
     "extra": {
       "eas": {

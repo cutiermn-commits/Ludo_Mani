@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics';
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Color, FINISHED } from '../engine/board';
 import { GameEvent, GameState, currentPlayer, legalMoves } from '../engine/game';
@@ -49,7 +49,13 @@ interface Props {
 
 export function GameView({ state, canAct, onRoll, onMove, onExit, banner, youColor }: Props) {
   const { width, height } = useWindowDimensions();
-  const boardSize = Math.floor(Math.min(width - 24, height - 240, 900));
+  // Large screens (desktop, TV) scale the dice and text up with the board; phones stay at 1x.
+  const k = Math.min(1.8, Math.max(1, Math.min(width, height) / 760));
+  const boardSize = Math.floor(Math.min(width - 24, height - 240 * k, 1100));
+  const fs = (n: number) => Math.round(n * k);
+  // Web with a mouse/keyboard (desktop, TV) gets keyboard hints; touch phones do not.
+  const hasKeyboard =
+    Platform.OS === 'web' && typeof window !== 'undefined' && !!window.matchMedia && !window.matchMedia('(pointer: coarse)').matches;
 
   const player = currentPlayer(state);
   const moves = useMemo(() => legalMoves(state), [state]);
@@ -77,6 +83,41 @@ export function GameView({ state, canAct, onRoll, onMove, onExit, banner, youCol
     onRoll();
   };
 
+  // ---- Keyboard / TV remote (web) ----
+  // Space or Enter: roll, or move the selected token. Arrow keys: choose a token. 1-4: move that token.
+  const [selIdx, setSelIdx] = useState(0);
+  useEffect(() => setSelIdx(0), [state]);
+  const keyState = useRef({ myTurn, phase: state.phase, moves, selIdx, onMove, roll: () => roll() });
+  keyState.current = { myTurn, phase: state.phase, moves, selIdx, onMove, roll: () => roll() };
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+    const onKey = (e: KeyboardEvent) => {
+      const k = keyState.current;
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (!k.myTurn || tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (k.phase === 'roll' && (e.key === ' ' || e.key === 'Enter' || e.key.toLowerCase() === 'r')) {
+        e.preventDefault();
+        k.roll();
+      } else if (k.phase === 'move' && k.moves.length) {
+        if (['ArrowRight', 'ArrowDown'].includes(e.key)) {
+          e.preventDefault();
+          setSelIdx((i) => (i + 1) % k.moves.length);
+        } else if (['ArrowLeft', 'ArrowUp'].includes(e.key)) {
+          e.preventDefault();
+          setSelIdx((i) => (i - 1 + k.moves.length) % k.moves.length);
+        } else if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          k.onMove(k.moves[k.selIdx % k.moves.length]);
+        } else if (/^[1-4]$/.test(e.key) && k.moves.includes(Number(e.key) - 1)) {
+          e.preventDefault();
+          k.onMove(Number(e.key) - 1);
+        }
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   const onTokenPress = (color: Color, token: number) => {
     if (myTurn && color === player.color) onMove(token);
   };
@@ -88,22 +129,28 @@ export function GameView({ state, canAct, onRoll, onMove, onExit, banner, youCol
     <View style={styles.wrap}>
       <View style={styles.header}>
         <Pressable accessibilityRole="button" onPress={onExit} hitSlop={12}>
-          <Text style={styles.exit}>‹ Menu</Text>
+          <Text style={[styles.exit, { fontSize: fs(17) }]}>‹ Menu</Text>
         </Pressable>
         <View style={styles.scores}>
           {state.players.map((p) => (
             <View key={p.color} style={[styles.score, { borderColor: p.color === player.color ? '#FFFFFF' : 'transparent' }]}>
               <View style={[styles.dot, { backgroundColor: PALETTE[p.color].main }]} />
               {p.color === youColor && <Text style={styles.you}>You</Text>}
-              <Text style={styles.scoreText}>{p.tokens.filter((t) => t === FINISHED).length}/4</Text>
+              <Text style={[styles.scoreText, { fontSize: fs(14) }]}>{p.tokens.filter((t) => t === FINISHED).length}/4</Text>
             </View>
           ))}
         </View>
       </View>
 
-      {banner ? <Text style={styles.banner}>{banner}</Text> : null}
+      {banner ? <Text style={[styles.banner, { fontSize: fs(14) }]}>{banner}</Text> : null}
 
-      <Board size={boardSize} players={state.players} movable={movable} onTokenPress={onTokenPress} />
+      <Board
+        size={boardSize}
+        players={state.players}
+        movable={movable}
+        selected={Platform.OS === 'web' && movable.length > 1 ? { color: player.color, token: moves[selIdx % moves.length] } : null}
+        onTokenPress={onTokenPress}
+      />
 
       <View style={styles.footer}>
         {state.phase === 'over' ? (
@@ -116,19 +163,22 @@ export function GameView({ state, canAct, onRoll, onMove, onExit, banner, youCol
         ) : (
           <>
             <Dice
+              size={Math.round(72 * k)}
               value={shownDice}
               color={PALETTE[player.color].main}
               enabled={myTurn && state.phase === 'roll'}
               onPress={roll}
             />
             <View style={styles.status}>
-              <Text style={[styles.turn, { color: PALETTE[player.color].main }]}>
+              <Text style={[styles.turn, { color: PALETTE[player.color].main, fontSize: fs(22) }]}>
                 {LABEL[player.color]}
                 {player.kind === 'bot' ? ' (computer)' : player.color === youColor ? ' (you)' : ''}
               </Text>
-              <Text style={styles.message}>
+              <Text style={[styles.message, { fontSize: fs(15) }]}>
                 {myTurn && state.phase === 'roll' && state.lastEvent.type !== 'no-moves' && state.lastEvent.type !== 'forfeit'
-                  ? 'Tap the dice to roll'
+                  ? hasKeyboard
+                    ? 'Click the dice or press Space to roll'
+                    : 'Tap the dice to roll'
                   : describe(state.lastEvent)}
               </Text>
             </View>
@@ -141,15 +191,15 @@ export function GameView({ state, canAct, onRoll, onMove, onExit, banner, youCol
 
 const styles = StyleSheet.create({
   wrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12, gap: 16 },
-  header: { width: '100%', maxWidth: 900, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 8 },
+  header: { width: '100%', maxWidth: 1100, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 8 },
   exit: { color: UI.text, fontSize: 17, fontWeight: '600' },
-  scores: { flexDirection: 'row', gap: 8 },
-  score: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, borderWidth: 2, backgroundColor: UI.surface },
+  scores: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 6, flexShrink: 1, marginLeft: 8 },
+  score: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 12, borderWidth: 2, backgroundColor: UI.surface },
   dot: { width: 12, height: 12, borderRadius: 6 },
   scoreText: { color: UI.text, fontWeight: '700' },
   you: { color: UI.accent, fontWeight: '800', fontSize: 12 },
   banner: { color: UI.accent, fontSize: 14, fontWeight: '600', textAlign: 'center' },
-  footer: { width: '100%', maxWidth: 900, flexDirection: 'row', alignItems: 'center', gap: 16, minHeight: 90 },
+  footer: { width: '100%', maxWidth: 1100, flexDirection: 'row', alignItems: 'center', gap: 16, minHeight: 90 },
   status: { flex: 1 },
   turn: { fontSize: 22, fontWeight: '800' },
   message: { color: UI.muted, fontSize: 15, marginTop: 4 },

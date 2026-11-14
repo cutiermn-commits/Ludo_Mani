@@ -19,6 +19,8 @@ interface Props {
   size: number;
   players: Player[];
   movable: { color: Color; token: number }[];
+  /** Keyboard/TV-remote focus: the token that Enter would move. */
+  selected?: { color: Color; token: number } | null;
   onTokenPress: (color: Color, token: number) => void;
 }
 
@@ -91,7 +93,7 @@ const BoardArt = memo(function BoardArt({ size }: { size: number }) {
   );
 });
 
-export function Board({ size, players, movable, onTokenPress }: Props) {
+export function Board({ size, players, movable, selected, onTokenPress }: Props) {
   const c = size / 15;
 
   // Group tokens by cell so stacked tokens can be fanned out.
@@ -121,6 +123,7 @@ export function Board({ size, players, movable, onTokenPress }: Props) {
         const cx = (inBase ? x : x + 0.5) * c + offset;
         const cy = (inBase ? y : y + 0.5) * c + offset;
         const active = isMovable(color, token);
+        const isSel = !!selected && selected.color === color && selected.token === token;
         return (
           <Pressable
             key={`${color}-${token}`}
@@ -138,10 +141,10 @@ export function Board({ size, players, movable, onTokenPress }: Props) {
                 height: r * 2,
                 borderRadius: r,
                 backgroundColor: PALETTE[color].main,
-                borderColor: active ? '#111111' : '#FFFFFF',
-                borderWidth: active ? 3 : 2,
-                transform: [{ scale: active ? 1.15 : 1 }],
-                zIndex: active ? 2 : 1,
+                borderColor: isSel ? '#FFB300' : active ? '#111111' : '#FFFFFF',
+                borderWidth: isSel ? 4 : active ? 3 : 2,
+                transform: [{ scale: isSel ? 1.35 : active ? 1.15 : 1 }],
+                zIndex: isSel ? 3 : active ? 2 : 1,
               },
             ]}
           >

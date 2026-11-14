@@ -70,6 +70,7 @@ writeFileSync(
     `${cfg.appName} – Support`,
     `<h1>${esc(cfg.appName)} – Support</h1>
 <p class="muted">The classic board game for 2–4 players: online with friends, on one device, or against the computer.</p>
+${cfg.webUrl ? `<p><a href="${esc(cfg.webUrl)}/"><b>▶ Play in your browser</b></a> – works on phones, tablets, computers and TV browsers.</p>` : ''}
 
 <h2>Contact</h2>
 <p>Questions, problems or feedback? Email ${mail}. Please include your iPhone/iPad model and iOS version.</p>
@@ -88,6 +89,13 @@ writeFileSync(
   <li>Friends tap <b>Play online with friends</b>, enter the code and tap <b>Join</b>.</li>
   <li>The host can give empty seats to computer players (Easy, Medium or Hard) and then starts the game.</li>
   <li>If your connection drops, reopen the app; the game reconnects automatically. If you are away too long, your turn is played for you so the game keeps going.</li>
+</ul>
+
+<h2>Keyboard and TV remote (browser version)</h2>
+<ul>
+  <li><b>Space</b> or <b>Enter</b>: roll the dice, or move the highlighted token.</li>
+  <li><b>Arrow keys</b>: choose which token to move. <b>1–4</b>: move that token directly.</li>
+  <li><b>Tab</b>: move between buttons on the menus.</li>
 </ul>
 
 <h2>Troubleshooting</h2>
