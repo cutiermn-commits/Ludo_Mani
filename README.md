@@ -57,7 +57,7 @@ One codebase builds all three:
 
 | Platform | How it ships | Command |
 |---|---|---|
-| **Web** (phone, desktop and TV browsers) | Static site in `docs/play/`, served by GitHub Pages at https://cutiermn-commits.github.io/ludo_mani/play/ | `npm run build:web`, then commit and push `docs/play` |
+| **Web** (phone, desktop and TV browsers) | Static site in `docs/play/`, served by GitHub Pages at https://cutiermn-commits.github.io/Ludo_Mani/play/ | `npm run build:web`, then commit and push `docs/play` |
 | **iOS** (App Store) | EAS Build + Submit | `npx eas-cli@latest build --platform ios --profile production` |
 | **Android** (Google Play) | EAS Build produces an `.aab` for the Play Console | `npx eas-cli@latest build --platform android --profile production` |
 
