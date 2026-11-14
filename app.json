@@ -27,6 +27,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "6e79e1cf-5a84-458b-ac29-ee8ba756e990"
+      }
+    },
+    "owner": "cutiermn"
   }
 }
