@@ -1,5 +1,5 @@
-import React, { memo } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import React, { memo, useEffect, useRef } from 'react';
+import { Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
 import Svg, { Circle, G, Polygon, Rect } from 'react-native-svg';
 import {
   BASE_ORIGIN,
@@ -19,6 +19,8 @@ interface Props {
   size: number;
   players: Player[];
   movable: { color: Color; token: number }[];
+  /** Whose turn it is: their base gets a glowing outline. */
+  current?: Color | null;
   /** Keyboard/TV-remote focus: the token that Enter would move. */
   selected?: { color: Color; token: number } | null;
   onTokenPress: (color: Color, token: number) => void;
@@ -93,7 +95,84 @@ const BoardArt = memo(function BoardArt({ size }: { size: number }) {
   );
 });
 
-export function Board({ size, players, movable, selected, onTokenPress }: Props) {
+const MOVE_MS = 260;
+
+/** A token that slides to its new position and gently pulses when it can move. */
+function Token(props: {
+  color: Color;
+  token: number;
+  x: number;
+  y: number;
+  r: number;
+  active: boolean;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  const { color, token, x, y, r, active, selected, onPress } = props;
+  const pos = useRef(new Animated.ValueXY({ x: x - r, y: y - r })).current;
+  const pulse = useRef(new Animated.Value(0)).current;
+  const first = useRef(true);
+
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      pos.setValue({ x: x - r, y: y - r });
+      return;
+    }
+    Animated.timing(pos, { toValue: { x: x - r, y: y - r }, duration: MOVE_MS, easing: Easing.out(Easing.quad), useNativeDriver: true }).start();
+  }, [x, y, r, pos]);
+
+  useEffect(() => {
+    if (!active) {
+      pulse.stopAnimation();
+      pulse.setValue(0);
+      return;
+    }
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 500, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0, duration: 500, useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [active, pulse]);
+
+  const base = selected ? 1.35 : active ? 1.12 : 1;
+  const scale = pulse.interpolate({ inputRange: [0, 1], outputRange: [base, base + (active ? 0.12 : 0)] });
+
+  return (
+    <Animated.View
+      style={[
+        styles.tokenPos,
+        { width: r * 2, height: r * 2, zIndex: selected ? 3 : active ? 2 : 1, transform: [{ translateX: pos.x }, { translateY: pos.y }, { scale }] },
+      ]}
+    >
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${color} token ${token + 1}${active ? ', can move' : ''}`}
+        disabled={!active}
+        onPress={onPress}
+        hitSlop={8}
+        style={[
+          styles.token,
+          {
+            width: r * 2,
+            height: r * 2,
+            borderRadius: r,
+            backgroundColor: PALETTE[color].main,
+            borderColor: selected ? '#FFB300' : active ? '#111111' : '#FFFFFF',
+            borderWidth: selected ? 4 : active ? 3 : 2,
+          },
+        ]}
+      >
+        <View style={[styles.tokenInner, { borderRadius: r, backgroundColor: PALETTE[color].dark }]} />
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+export function Board({ size, players, movable, selected, current, onTokenPress }: Props) {
   const c = size / 15;
 
   // Group tokens by cell so stacked tokens can be fanned out.
@@ -113,6 +192,22 @@ export function Board({ size, players, movable, selected, onTokenPress }: Props)
   return (
     <View style={{ width: size, height: size }}>
       <BoardArt size={size} />
+      {current && (
+        <View
+          pointerEvents="none"
+          style={[
+            styles.turnGlow,
+            {
+              left: BASE_ORIGIN[current][0] * c,
+              top: BASE_ORIGIN[current][1] * c,
+              width: 6 * c,
+              height: 6 * c,
+              borderColor: '#FFFFFF',
+              shadowColor: PALETTE[current].main,
+            },
+          ]}
+        />
+      )}
       {placed.map(({ color, token, x, y, key }) => {
         const total = byCell.get(key)!;
         const idx = seen.get(key) ?? 0;
@@ -125,31 +220,17 @@ export function Board({ size, players, movable, selected, onTokenPress }: Props)
         const active = isMovable(color, token);
         const isSel = !!selected && selected.color === color && selected.token === token;
         return (
-          <Pressable
+          <Token
             key={`${color}-${token}`}
-            accessibilityRole="button"
-            accessibilityLabel={`${color} token ${token + 1}${active ? ', can move' : ''}`}
-            disabled={!active}
+            color={color}
+            token={token}
+            x={cx}
+            y={cy}
+            r={r}
+            active={active}
+            selected={isSel}
             onPress={() => onTokenPress(color, token)}
-            hitSlop={8}
-            style={[
-              styles.token,
-              {
-                left: cx - r,
-                top: cy - r,
-                width: r * 2,
-                height: r * 2,
-                borderRadius: r,
-                backgroundColor: PALETTE[color].main,
-                borderColor: isSel ? '#FFB300' : active ? '#111111' : '#FFFFFF',
-                borderWidth: isSel ? 4 : active ? 3 : 2,
-                transform: [{ scale: isSel ? 1.35 : active ? 1.15 : 1 }],
-                zIndex: isSel ? 3 : active ? 2 : 1,
-              },
-            ]}
-          >
-            <View style={[styles.tokenInner, { borderRadius: r, backgroundColor: PALETTE[color].dark }]} />
-          </Pressable>
+          />
         );
       })}
     </View>
@@ -157,8 +238,9 @@ export function Board({ size, players, movable, selected, onTokenPress }: Props)
 }
 
 const styles = StyleSheet.create({
+  tokenPos: { position: 'absolute', left: 0, top: 0 },
+  turnGlow: { position: 'absolute', borderWidth: 4, borderRadius: 6, shadowOpacity: 0.9, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } },
   token: {
-    position: 'absolute',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',

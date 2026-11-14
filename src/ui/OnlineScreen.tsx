@@ -9,11 +9,17 @@ import { DIFFICULTY_LABEL, RULE_LABELS } from './MenuScreen';
 import { ShareResult, confirmAction, shareInvite, webJoinUrl } from './platform';
 import { LABEL, PALETTE, UI } from './theme';
 
-// Public web address of the game, used in invites sent from the native apps.
-const WEB_URL: string | undefined = process.env.EXPO_PUBLIC_WEB_URL;
+import { WEB_URL } from '../config';
+import { NameChip } from './NameChip';
+import { displayName } from '../engine/quips';
 
-function inviteUrl(code: string): string | undefined {
-  return webJoinUrl(code) ?? (WEB_URL ? `${WEB_URL.replace(/\/$/, '')}/?join=${code}` : undefined);
+/** Invite link: the current web page when playing in a browser, otherwise the public web address. */
+function inviteUrl(code: string): string {
+  return webJoinUrl(code) ?? `${WEB_URL}/?join=${code}`;
+}
+
+export function inviteText(code: string, from?: string | null): string {
+  return `🎲 ${from ?? 'A friend'} invited you to play Ludo!\nRoom code: ${code}\nTap the link to join (works in any browser, or enter the code in the app):`;
 }
 
 const NEXT_SEAT: Record<string, { kind: 'bot' | 'open'; difficulty?: Difficulty }> = {
@@ -25,9 +31,13 @@ const NEXT_SEAT: Record<string, { kind: 'bot' | 'open'; difficulty?: Difficulty 
 
 function seatLabel(s: SeatView, mine: boolean): string {
   if (s.kind === 'open') return 'Open – waiting';
-  if (s.kind === 'bot') return `Computer · ${DIFFICULTY_LABEL[s.difficulty ?? 'medium']}`;
+  if (s.kind === 'bot') return `🤖 Computer · ${DIFFICULTY_LABEL[s.difficulty ?? 'medium']}`;
   if (mine) return 'You';
   return s.connected ? 'Player' : 'Player (offline)';
+}
+
+function seatTitle(s: SeatView): string {
+  return s.kind === 'open' ? LABEL[s.color] : (s.name ?? LABEL[s.color]);
 }
 
 /** Counts down from a server-supplied "ms left", measured from when it arrived. */
@@ -44,8 +54,18 @@ function useCountdown(msLeft: number | null, key: unknown): number | null {
   return left;
 }
 
-export function OnlineScreen({ onExit, joinCode }: { onExit: () => void; joinCode?: string | null }) {
-  const online = useOnlineRoom();
+export function OnlineScreen({
+  onExit,
+  joinCode,
+  profileName,
+  onShuffleProfile,
+}: {
+  onExit: () => void;
+  joinCode?: string | null;
+  profileName: string | null;
+  onShuffleProfile: () => string;
+}) {
+  const online = useOnlineRoom(profileName);
   const { room, me, status, error } = online;
   const [code, setCode] = useState(joinCode ?? '');
   const [shared, setShared] = useState<ShareResult | null>(null);
@@ -71,7 +91,7 @@ export function OnlineScreen({ onExit, joinCode }: { onExit: () => void; joinCod
       status !== 'open'
         ? 'Connection lost – reconnecting…'
         : waitingOn && secondsLeft !== null
-          ? `Waiting for ${LABEL[cur.color]}${curSeat && !curSeat.connected ? ' (offline)' : ''} · auto-move in ${secondsLeft}s`
+          ? `Waiting for ${displayName(cur)}${curSeat && !curSeat.connected ? ' (offline)' : ''} · auto-move in ${secondsLeft}s`
           : cur.color === me.color && secondsLeft !== null && secondsLeft <= 10 && room.state.phase !== 'over'
             ? `Your turn · auto-move in ${secondsLeft}s`
             : null;
@@ -98,11 +118,12 @@ export function OnlineScreen({ onExit, joinCode }: { onExit: () => void; joinCod
     const filled = room.seats.filter((s) => s.kind !== 'open').length;
     return (
       <ScrollView style={styles.scroll} contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
+        <NameChip label="You are" name={profileName} onShuffle={() => online.rename(onShuffleProfile())} />
         <Text style={styles.label}>Room code</Text>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Room code ${room.code.split('').join(' ')}. Tap to share.`}
-          onPress={async () => setShared(await shareInvite(`Join my Ludo game! Room code: ${room.code}`, inviteUrl(room.code)))}
+          onPress={async () => setShared(await shareInvite(inviteText(room.code, profileName), inviteUrl(room.code)))}
         >
           <Text style={styles.code}>{room.code}</Text>
           <Text style={styles.hint}>
@@ -120,14 +141,16 @@ export function OnlineScreen({ onExit, joinCode }: { onExit: () => void; joinCod
                 key={s.color}
                 disabled={!editable}
                 accessibilityRole="button"
-                accessibilityLabel={`${LABEL[s.color]}: ${seatLabel(s, mine)}${editable ? '. Tap to change.' : ''}`}
+                accessibilityLabel={`${LABEL[s.color]}: ${seatTitle(s)}, ${seatLabel(s, mine)}${editable ? '. Tap to change.' : ''}`}
                 onPress={() => {
                   const n = NEXT_SEAT[nextKey];
                   online.setSeat(s.color, n.kind, n.difficulty);
                 }}
                 style={[styles.seat, { backgroundColor: s.kind === 'open' ? UI.surface : PALETTE[s.color].main }]}
               >
-                <Text style={styles.seatColor}>{LABEL[s.color]}</Text>
+                <Text style={styles.seatColor} numberOfLines={1}>
+                  {seatTitle(s)}
+                </Text>
                 <Text style={styles.seatKind}>{seatLabel(s, mine)}</Text>
                 {room.hostColor === s.color && <Text style={styles.host}>HOST</Text>}
               </Pressable>
@@ -170,6 +193,7 @@ export function OnlineScreen({ onExit, joinCode }: { onExit: () => void; joinCod
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
       <Text style={styles.title}>Play online</Text>
+      <NameChip label="You are" name={profileName} onShuffle={onShuffleProfile} />
       {!SERVER_URL && <Text style={styles.error}>Online play is not configured in this build.</Text>}
 
       <Pressable

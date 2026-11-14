@@ -19,6 +19,8 @@ export interface Player {
   kind: PlayerKind;
   /** Only meaningful for bots. */
   difficulty?: Difficulty;
+  /** Display name from the curated list in names.ts (never free text). */
+  name?: string;
   /** Progress per token: -1 base, 0..50 shared track, 51..55 home column, 56 finished. */
   tokens: number[];
 }
@@ -63,6 +65,7 @@ export interface PlayerSetup {
   color: Color;
   kind: PlayerKind;
   difficulty?: Difficulty;
+  name?: string;
 }
 
 export function createGame(setup: PlayerSetup[], rules: Rules = DEFAULT_RULES): GameState {
@@ -76,6 +79,7 @@ export function createGame(setup: PlayerSetup[], rules: Rules = DEFAULT_RULES): 
       color: p.color,
       kind: p.kind,
       ...(p.kind === 'bot' ? { difficulty: p.difficulty ?? 'medium' } : {}),
+      ...(p.name ? { name: p.name } : {}),
       tokens: [IN_BASE, IN_BASE, IN_BASE, IN_BASE],
     })),
     current: 0,

@@ -3,6 +3,7 @@ import { AppState } from 'react-native';
 import { Color } from '../engine/board';
 import { Difficulty, Rules } from '../engine/game';
 import { ClientMessage, PROTOCOL_VERSION, RoomView, ServerMessage } from './protocol';
+import { isAllowedName } from '../engine/names';
 
 // Set in .env / EAS environment: EXPO_PUBLIC_SERVER_URL=wss://your-server.example.com
 // iOS App Transport Security blocks plain ws:// to remote hosts in release builds, so use wss:// in production.
@@ -22,7 +23,9 @@ type Intent = { t: 'create' } | { t: 'join'; code: string } | null;
 const PING_MS = 20_000;
 const MAX_BACKOFF_MS = 10_000;
 
-export function useOnlineRoom() {
+export function useOnlineRoom(name?: string | null) {
+  const nameRef = useRef(name);
+  nameRef.current = name;
   const [status, setStatus] = useState<ConnStatus>('idle');
   const [room, setRoom] = useState<RoomView | null>(null);
   const [me, setMe] = useState<Identity | null>(null);
@@ -35,6 +38,8 @@ export function useOnlineRoom() {
   const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pingTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const wanted = useRef(false); // do we want a live connection?
+
+  const nameField = () => (isAllowedName(nameRef.current) ? { name: nameRef.current } : {});
 
   const send = useCallback((m: ClientMessage) => {
     if (ws.current?.readyState === WebSocket.OPEN) ws.current.send(JSON.stringify(m));
@@ -63,8 +68,8 @@ export function useOnlineRoom() {
       setStatus('open');
       const id = meRef.current;
       if (id) send({ t: 'resume', v: PROTOCOL_VERSION, code: id.code, playerId: id.playerId, secret: id.secret });
-      else if (intent.current?.t === 'create') send({ t: 'create', v: PROTOCOL_VERSION });
-      else if (intent.current?.t === 'join') send({ t: 'join', v: PROTOCOL_VERSION, code: intent.current.code });
+      else if (intent.current?.t === 'create') send({ t: 'create', v: PROTOCOL_VERSION, ...nameField() });
+      else if (intent.current?.t === 'join') send({ t: 'join', v: PROTOCOL_VERSION, code: intent.current.code, ...nameField() });
       intent.current = null;
       pingTimer.current = setInterval(() => send({ t: 'ping' }), PING_MS);
     };
@@ -150,8 +155,8 @@ export function useOnlineRoom() {
     setRoom(null);
     intent.current = i;
     if (ws.current?.readyState === WebSocket.OPEN) {
-      if (i?.t === 'create') send({ t: 'create', v: PROTOCOL_VERSION });
-      if (i?.t === 'join') send({ t: 'join', v: PROTOCOL_VERSION, code: i.code });
+      if (i?.t === 'create') send({ t: 'create', v: PROTOCOL_VERSION, ...nameField() });
+      if (i?.t === 'join') send({ t: 'join', v: PROTOCOL_VERSION, code: i.code, ...nameField() });
       intent.current = null;
     } else connect();
   };
@@ -166,6 +171,7 @@ export function useOnlineRoom() {
     join: (code: string) => begin({ t: 'join', code: code.trim().toUpperCase() }),
     setSeat: (color: Color, kind: 'bot' | 'open', difficulty?: Difficulty) => send({ t: 'seat', color, kind, difficulty }),
     setRules: (rules: Rules) => send({ t: 'rules', rules }),
+    rename: (n: string) => isAllowedName(n) && send({ t: 'rename', name: n }),
     start: () => send({ t: 'start' }),
     roll: useCallback(() => send({ t: 'roll' }), [send]),
     move: useCallback((token: number) => send({ t: 'move', token }), [send]),

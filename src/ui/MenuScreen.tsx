@@ -4,6 +4,8 @@ import { COLORS, Color } from '../engine/board';
 import { DEFAULT_RULES, Difficulty, GameState, PlayerSetup, Rules } from '../engine/game';
 import { FINISHED } from '../engine/board';
 import { SaveEnvelope } from '../engine/persist';
+import { botName, randomName } from '../engine/names';
+import { NameChip } from './NameChip';
 import { clearSavedGame, loadSavedGame } from '../storage/savedGame';
 import { PrivacyModal } from './PrivacyModal';
 import { LABEL, PALETTE, UI } from './theme';
@@ -20,7 +22,7 @@ export const RULE_LABELS: [keyof Rules, string][] = [
 
 const NEXT: Record<Seat, Seat> = { human: 'easy', easy: 'medium', medium: 'hard', hard: 'off', off: 'human' };
 const SEAT_LABEL: Record<Seat, string> = {
-  human: 'Player',
+  human: 'Player on this device',
   easy: 'Computer · Easy',
   medium: 'Computer · Medium',
   hard: 'Computer · Hard',
@@ -28,6 +30,9 @@ const SEAT_LABEL: Record<Seat, string> = {
 };
 
 interface Props {
+  /** The device owner's chosen name (plays the first human seat). */
+  profileName: string | null;
+  onShuffleProfile: () => void;
   onStart: (players: PlayerSetup[], rules: Rules) => void;
   onResume: (state: GameState) => void;
   onOnline: () => void;
@@ -43,7 +48,7 @@ function timeAgo(ms: number): string {
   return `${d} day${d === 1 ? '' : 's'} ago`;
 }
 
-export function MenuScreen({ onStart, onResume, onOnline }: Props) {
+export function MenuScreen({ profileName, onShuffleProfile, onStart, onResume, onOnline }: Props) {
   const [saved, setSaved] = useState<SaveEnvelope | null>(null);
   useEffect(() => {
     let alive = true;
@@ -53,6 +58,31 @@ export function MenuScreen({ onStart, onResume, onOnline }: Props) {
     };
   }, []);
   const [seats, setSeats] = useState<Record<Color, Seat>>({ red: 'human', green: 'medium', yellow: 'medium', blue: 'medium' });
+  // Names for every seat: humans get fun names, computers get bot personalities.
+  const [names, setNames] = useState<Record<Color, string>>(() => {
+    const taken: string[] = [];
+    const out = {} as Record<Color, string>;
+    for (const c of COLORS) {
+      out[c] = c === 'red' ? randomName(Math.random, taken) : botName('medium', Math.random, taken);
+      taken.push(out[c]);
+    }
+    return out;
+  });
+  // The first human seat is always "you".
+  const firstHuman = COLORS.find((c) => seats[c] === 'human');
+  const nameOf = (c: Color) => (c === firstHuman && profileName ? profileName : names[c]);
+
+  const cycleSeat = (c: Color) => {
+    const next = NEXT[seats[c]];
+    setSeats((s) => ({ ...s, [c]: next }));
+    const others = COLORS.filter((x) => x !== c).map(nameOf);
+    if (next === 'human') setNames((n) => ({ ...n, [c]: randomName(Math.random, others) }));
+    else if (next !== 'off') setNames((n) => ({ ...n, [c]: botName(next, Math.random, others) }));
+  };
+  const reshuffle = (c: Color) => {
+    const others = COLORS.filter((x) => x !== c).map(nameOf);
+    setNames((n) => ({ ...n, [c]: randomName(Math.random, others) }));
+  };
   const [rules, setRules] = useState<Rules>(DEFAULT_RULES);
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const active = COLORS.filter((c) => seats[c] !== 'off');
@@ -60,12 +90,15 @@ export function MenuScreen({ onStart, onResume, onOnline }: Props) {
 
   const toSetup = (c: Color): PlayerSetup => {
     const s = seats[c];
-    return s === 'human' ? { color: c, kind: 'human' } : { color: c, kind: 'bot', difficulty: s as Difficulty };
+    return s === 'human'
+      ? { color: c, kind: 'human', name: nameOf(c) }
+      : { color: c, kind: 'bot', difficulty: s as Difficulty, name: nameOf(c) };
   };
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
       <Text style={styles.title}>LUDO</Text>
+      <NameChip label="You are" name={profileName} onShuffle={onShuffleProfile} />
 
       {saved && (
         <View style={styles.resumeCard}>
@@ -111,18 +144,36 @@ export function MenuScreen({ onStart, onResume, onOnline }: Props) {
       <Text style={styles.subtitle}>Or play on this device · tap a seat to change it</Text>
 
       <View style={styles.seats}>
-        {COLORS.map((c) => (
-          <Pressable
-            key={c}
-            accessibilityRole="button"
-            accessibilityLabel={`${LABEL[c]} seat: ${SEAT_LABEL[seats[c]]}. Tap to change.`}
-            onPress={() => setSeats((s) => ({ ...s, [c]: NEXT[s[c]] }))}
-            style={[styles.seat, { backgroundColor: seats[c] === 'off' ? UI.surface : PALETTE[c].main }]}
-          >
-            <Text style={styles.seatColor}>{LABEL[c]}</Text>
-            <Text style={styles.seatKind}>{SEAT_LABEL[seats[c]]}</Text>
-          </Pressable>
-        ))}
+        {COLORS.map((c) => {
+          const s = seats[c];
+          const you = c === firstHuman;
+          return (
+            <View key={c} style={[styles.seat, { backgroundColor: s === 'off' ? UI.surface : PALETTE[c].main }]}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${LABEL[c]} seat: ${s === 'off' ? 'Empty' : nameOf(c)}, ${SEAT_LABEL[s]}. Tap to change.`}
+                onPress={() => cycleSeat(c)}
+                style={styles.seatMain}
+              >
+                <Text style={styles.seatColor} numberOfLines={1}>
+                  {s === 'off' ? LABEL[c] : nameOf(c)}
+                </Text>
+                <Text style={styles.seatKind}>{you ? 'You' : SEAT_LABEL[s]}</Text>
+              </Pressable>
+              {s === 'human' && !you && (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`New name for ${LABEL[c]}`}
+                  onPress={() => reshuffle(c)}
+                  hitSlop={8}
+                  style={styles.shuffle}
+                >
+                  <Text>🎲</Text>
+                </Pressable>
+              )}
+            </View>
+          );
+        })}
       </View>
 
       <View style={styles.rules}>
@@ -161,8 +212,10 @@ const styles = StyleSheet.create({
   online: { backgroundColor: UI.accent, borderRadius: 16, paddingVertical: 18, alignItems: 'center' },
   onlineText: { color: '#1A1A1A', fontSize: 18, fontWeight: '800' },
   seats: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  seat: { flexBasis: '47%', flexGrow: 1, borderRadius: 16, paddingVertical: 16, alignItems: 'center' },
-  seatColor: { color: '#FFFFFF', fontSize: 19, fontWeight: '800' },
+  seat: { flexBasis: '47%', flexGrow: 1, borderRadius: 16, overflow: 'hidden' },
+  seatMain: { paddingVertical: 16, paddingHorizontal: 8, alignItems: 'center' },
+  shuffle: { position: 'absolute', top: 6, right: 8 },
+  seatColor: { color: '#FFFFFF', fontSize: 17, fontWeight: '800', textAlign: 'center' },
   seatKind: { color: '#FFFFFF', fontSize: 14, marginTop: 4, opacity: 0.95, textAlign: 'center', paddingHorizontal: 6 },
   rules: { backgroundColor: UI.surface, borderRadius: 16, padding: 16, gap: 12 },
   ruleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },

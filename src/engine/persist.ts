@@ -3,6 +3,7 @@
 
 import { COLORS, FINISHED, IN_BASE } from './board';
 import { GameState, legalMoves } from './game';
+import { isKnownName } from './names';
 
 export const SAVE_VERSION = 1;
 
@@ -24,6 +25,7 @@ export function isValidGameState(s: unknown): s is GameState {
     seen.add(p.color);
     if (p.kind !== 'human' && p.kind !== 'bot') return false;
     if (p.difficulty !== undefined && !['easy', 'medium', 'hard'].includes(p.difficulty)) return false;
+    if (p.name !== undefined && !isKnownName(p.name)) return false;
     if (!Array.isArray(p.tokens) || p.tokens.length !== 4) return false;
     if (!p.tokens.every((t: unknown) => Number.isInteger(t) && (t as number) >= IN_BASE && (t as number) <= FINISHED)) return false;
   }

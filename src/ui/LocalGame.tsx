@@ -10,7 +10,7 @@ const BOT_MOVE_DELAY = 550;
 const rollDie = () => Math.floor(Math.random() * 6) + 1;
 
 /** Pass-and-play on one device, with computer players driven locally. */
-export function LocalGame({ initial, onExit }: { initial: GameState; onExit: () => void }) {
+export function LocalGame({ initial, onExit, onRematch }: { initial: GameState; onExit: () => void; onRematch: (g: GameState) => void }) {
   const [state, setState] = useState(initial);
 
   const doRoll = useCallback(() => setState((s) => (s.phase === 'roll' ? roll(s, rollDie()) : s)), []);
@@ -35,5 +35,5 @@ export function LocalGame({ initial, onExit }: { initial: GameState; onExit: () 
     return () => clearTimeout(t);
   }, [state, doRoll, doMove]);
 
-  return <GameView state={state} canAct={() => true} onRoll={doRoll} onMove={doMove} onExit={onExit} />;
+  return <GameView state={state} canAct={() => true} onRoll={doRoll} onMove={doMove} onExit={onExit} onRematch={() => onRematch(state)} />;
 }

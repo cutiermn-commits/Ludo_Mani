@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Conn, Deps, Room, RoomError } from '../src/room';
-import { ServerMessage } from '../../src/net/protocol';
+import { ServerMessage, parseClientMessage } from '../../src/net/protocol';
+import { isKnownName } from '../../src/engine/names';
 
 /** Fake clock + scheduler so timeouts run instantly and deterministically. */
 function fakeDeps(dice: number[] = []) {
@@ -154,4 +155,43 @@ test('a human-vs-3-bots game runs to completion with auto-play only', () => {
   for (let i = 0; i < 5000 && r.state!.phase !== 'over'; i++) advance(1000);
   assert.equal(r.state!.phase, 'over');
   assert.equal(c.last().room.state.phase, 'over', 'client received the final state');
+});
+
+test('names: chosen names are kept, duplicates avoided, bots get bot names, names carry into the game', () => {
+  const { deps } = fakeDeps();
+  const r = new Room('ABCDEF', deps, timing);
+  const red = r.join(conn(), 'Lucky Llama').playerId;
+  r.join(conn(), 'Lucky Llama'); // same name requested -> gets a different random one
+  const v = r.view();
+  assert.equal(v.seats.find((s) => s.color === 'red')!.name, 'Lucky Llama');
+  const yellowName = v.seats.find((s) => s.color === 'yellow')!.name!;
+  assert.ok(yellowName && yellowName !== 'Lucky Llama');
+  r.setSeat(red, 'green', 'bot', 'hard');
+  assert.ok(isKnownName(r.view().seats.find((s) => s.color === 'green')!.name));
+  r.rename(red, 'Turbo Taco');
+  assert.throws(() => r.rename(red, yellowName), (e: RoomError) => e.code === 'bad-request');
+  r.start(red);
+  assert.deepEqual(r.state!.players.map((p) => !!p.name), [true, true, true]);
+  assert.equal(r.state!.players[0].name, 'Turbo Taco');
+  assert.throws(() => r.rename(red, 'Fancy Yak'), (e: RoomError) => e.code === 'started');
+});
+
+test('a leaving player keeps their name on the seat the bot takes over', () => {
+  const { deps } = fakeDeps();
+  const r = new Room('ABCDEF', deps, timing);
+  const red = r.join(conn(), 'Lucky Llama').playerId;
+  const yellow = r.join(conn(), 'Sleepy Sloth').playerId;
+  r.start(red);
+  r.leave(yellow);
+  assert.equal(r.state!.players[1].name, 'Sleepy Sloth');
+  assert.equal(r.state!.players[1].kind, 'bot');
+});
+
+test('protocol rejects free-text names', () => {
+  assert.equal(parseClientMessage(JSON.stringify({ t: 'create', v: 1, name: 'Rude Word' })), null);
+  assert.equal(parseClientMessage(JSON.stringify({ t: 'rename', name: '<b>hi</b>' })), null);
+  assert.deepEqual(parseClientMessage(JSON.stringify({ t: 'join', v: 1, code: 'ABCDEF', name: 'Lucky Llama' })), {
+    t: 'join', v: 1, code: 'ABCDEF', name: 'Lucky Llama',
+  });
+  assert.deepEqual(parseClientMessage(JSON.stringify({ t: 'create', v: 1 })), { t: 'create', v: 1 }); // older apps
 });

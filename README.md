@@ -22,7 +22,7 @@ Ludo for 2–4 players:
 
 - **One rules engine** (`src/engine`) is used by the app for local play and by the server for online play, so the rules cannot drift apart.
 - **The server is authoritative online**: it rolls the dice (`crypto.randomInt`), validates every move and drives bots. A modified app cannot cheat.
-- **No user-generated content**: players are identified only by colour (no names, no chat). This keeps the app out of App Store Review Guideline 1.2, which requires filtering, reporting and blocking for apps where users post content.
+- **No user-generated content**: players pick fun nicknames from curated lists (`src/engine/names.ts`); the server rejects anything else, and there is no chat. This keeps the app out of App Store Review Guideline 1.2, which requires filtering, reporting and blocking for apps where users post content.
 - **Games never stall**: if it's an online player's turn and they don't act within 30 s (8 s if they've disconnected), the server plays that turn for them. A player who leaves is replaced by a computer player. A dropped connection resumes automatically with a secret session token.
 
 | Path | What it is |
@@ -30,6 +30,8 @@ Ludo for 2–4 players:
 | `src/engine/board.ts` | Board geometry: track, home columns, safe squares |
 | `src/engine/game.ts` | Pure rules engine (dice values are passed in, so it is deterministic) |
 | `src/engine/ai.ts` | Computer players: easy / medium / hard |
+| `src/engine/names.ts` | Curated nickname lists + validation; computer-player personalities |
+| `src/engine/quips.ts` | Humorous commentary for game events (deterministic per event) |
 | `src/engine/persist.ts` | Versioned save format + strict validation of saved games |
 | `src/storage/savedGame.ts` | On-device save/load (AsyncStorage), writes queued in order |
 | `src/net/protocol.ts` | Wire protocol + strict validation of client messages |

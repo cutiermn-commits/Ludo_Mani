@@ -128,7 +128,7 @@ export function startServer(opts: Partial<ServerOptions> = {}): { http: Server; 
         if (rooms.size >= o.maxRooms) throw new RoomError('capacity', 'Servers are busy. Try again shortly.');
         const room = new Room(newCode(), realDeps, o.timing);
         rooms.set(room.code, room);
-        const { playerId } = room.join(client);
+        const { playerId } = room.join(client, msg.name);
         bind(client, room, playerId);
         log('room.created', { code: room.code, rooms: rooms.size });
         return;
@@ -136,7 +136,7 @@ export function startServer(opts: Partial<ServerOptions> = {}): { http: Server; 
       case 'join': {
         const room = rooms.get(msg.code);
         if (!room) throw new RoomError('not-found', 'No room with that code.');
-        const { playerId } = room.join(client);
+        const { playerId } = room.join(client, msg.name);
         bind(client, room, playerId);
         return;
       }
@@ -157,6 +157,8 @@ export function startServer(opts: Partial<ServerOptions> = {}): { http: Server; 
         return room.setSeat(pid, msg.color, msg.kind, msg.difficulty);
       case 'rules':
         return room.setRules(pid, msg.rules);
+      case 'rename':
+        return room.rename(pid, msg.name);
       case 'start':
         room.start(pid);
         log('game.started', { code: room.code });

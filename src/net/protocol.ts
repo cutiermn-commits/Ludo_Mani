@@ -1,9 +1,11 @@
 // Wire protocol shared by the app and the game server (JSON over WebSocket).
-// No free-text fields exist anywhere in the protocol: players are identified only by colour.
-// This keeps the app out of "user-generated content" territory (App Store Review Guideline 1.2).
+// No free-text fields exist anywhere in the protocol: names can only come from the curated
+// lists in src/engine/names.ts and are validated here and on the server. This keeps the app
+// out of "user-generated content" territory (App Store Review Guideline 1.2).
 
 import { COLORS, Color } from '../engine/board';
 import { Difficulty, GameState, Rules } from '../engine/game';
+import { isAllowedName } from '../engine/names';
 
 export const PROTOCOL_VERSION = 1;
 export const ROOM_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no 0/O, 1/I/L
@@ -16,6 +18,7 @@ export interface SeatView {
   kind: SeatKind;
   connected: boolean; // humans only; bots are always "connected"
   difficulty?: Difficulty;
+  name?: string;
 }
 
 export interface RoomView {
@@ -30,8 +33,9 @@ export interface RoomView {
 }
 
 export type ClientMessage =
-  | { t: 'create'; v: number }
-  | { t: 'join'; v: number; code: string }
+  | { t: 'create'; v: number; name?: string }
+  | { t: 'join'; v: number; code: string; name?: string }
+  | { t: 'rename'; name: string }
   | { t: 'resume'; v: number; code: string; playerId: string; secret: string }
   | { t: 'seat'; color: Color; kind: 'bot' | 'open'; difficulty?: Difficulty }
   | { t: 'rules'; rules: Rules }
@@ -93,9 +97,13 @@ export function parseClientMessage(raw: string): ClientMessage | null {
   if (!isObj(m) || typeof m.t !== 'string') return null;
   switch (m.t) {
     case 'create':
-      return typeof m.v === 'number' ? { t: 'create', v: m.v } : null;
+      if (m.name !== undefined && !isAllowedName(m.name)) return null;
+      return typeof m.v === 'number' ? { t: 'create', v: m.v, ...(m.name ? { name: m.name } : {}) } : null;
     case 'join':
-      return typeof m.v === 'number' && isCode(m.code) ? { t: 'join', v: m.v, code: m.code } : null;
+      if (m.name !== undefined && !isAllowedName(m.name)) return null;
+      return typeof m.v === 'number' && isCode(m.code) ? { t: 'join', v: m.v, code: m.code, ...(m.name ? { name: m.name } : {}) } : null;
+    case 'rename':
+      return isAllowedName(m.name) ? { t: 'rename', name: m.name } : null;
     case 'resume':
       return typeof m.v === 'number' && isCode(m.code) && isToken(m.playerId) && isToken(m.secret)
         ? { t: 'resume', v: m.v, code: m.code, playerId: m.playerId, secret: m.secret }

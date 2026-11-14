@@ -21,7 +21,7 @@ export type ShareResult = 'shared' | 'copied' | 'failed';
  * available (most phones), otherwise copy to the clipboard (desktop, TV).
  */
 export async function shareInvite(text: string, url?: string): Promise<ShareResult> {
-  const full = url ? `${text} ${url}` : text;
+  const full = url ? `${text}\n${url}` : text;
   if (Platform.OS !== 'web') {
     try {
       await Share.share({ message: full });

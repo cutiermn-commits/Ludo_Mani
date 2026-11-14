@@ -7,6 +7,7 @@ import { COLORS, Color } from '../../src/engine/board';
 import { chooseBotMove } from '../../src/engine/ai';
 import { DEFAULT_RULES, Difficulty, GameState, Rules, createGame, currentPlayer, legalMoves, move, roll } from '../../src/engine/game';
 import { ErrorCode, RoomView, ServerMessage, SeatKind } from '../../src/net/protocol';
+import { botName, randomName } from '../../src/engine/names';
 
 export interface Conn {
   send(msg: ServerMessage): void;
@@ -39,6 +40,7 @@ interface Seat {
   secret?: string;
   conn?: Conn | null;
   difficulty?: Difficulty;
+  name?: string;
 }
 
 export class RoomError extends Error {
@@ -95,6 +97,7 @@ export class Room {
           kind: s.kind,
           connected: s.kind === 'bot' || !!s.conn,
           ...(s.kind === 'bot' ? { difficulty: s.difficulty } : {}),
+          ...(s.name ? { name: s.name } : {}),
         };
       }),
       rules: this.rules,
@@ -105,13 +108,22 @@ export class Room {
 
   // ---------- lobby ----------
 
-  join(conn: Conn): { playerId: string; color: Color } {
+  private rng = () => this.deps.randomInt(1_000_000) / 1_000_000;
+
+  private namesInUse(except?: Color): string[] {
+    return COLORS.filter((c) => c !== except && this.seats[c].name).map((c) => this.seats[c].name!);
+  }
+
+  /** `name` must already be validated against the curated list (protocol.ts does this). */
+  join(conn: Conn, name?: string): { playerId: string; color: Color } {
     if (this.state) throw new RoomError('started', 'This game has already started.');
     const color = JOIN_ORDER.find((c) => this.seats[c].kind === 'open');
     if (!color) throw new RoomError('full', 'This room is full.');
     const playerId = this.deps.token();
     const secret = this.deps.token();
-    this.seats[color] = { kind: 'human', playerId, secret, conn };
+    const taken = this.namesInUse();
+    const finalName = name && !taken.includes(name) ? name : randomName(this.rng, taken);
+    this.seats[color] = { kind: 'human', playerId, secret, conn, name: finalName };
     if (!this.hostId) this.hostId = playerId;
     conn.send({ t: 'welcome', code: this.code, playerId, secret, color });
     this.touch();
@@ -136,7 +148,18 @@ export class Room {
     this.requireHost(playerId);
     this.requireLobby();
     if (this.seats[color].kind === 'human') throw new RoomError('bad-request', 'That seat has a player.');
-    this.seats[color] = kind === 'bot' ? { kind: 'bot', difficulty } : { kind: 'open' };
+    this.seats[color] = kind === 'bot' ? { kind: 'bot', difficulty, name: botName(difficulty, this.rng, this.namesInUse(color)) } : { kind: 'open' };
+    this.touch();
+    this.broadcast();
+  }
+
+  /** Change your own name (lobby only). */
+  rename(playerId: string, name: string) {
+    this.requireLobby();
+    const color = this.colorOf(playerId);
+    if (!color) throw new RoomError('bad-request', 'Not in this room.');
+    if (this.namesInUse(color).includes(name)) throw new RoomError('bad-request', 'Someone already has that name.');
+    this.seats[color].name = name;
     this.touch();
     this.broadcast();
   }
@@ -157,7 +180,9 @@ export class Room {
     this.state = createGame(
       filled.map((c) => {
         const s = this.seats[c];
-        return s.kind === 'bot' ? { color: c, kind: 'bot', difficulty: s.difficulty } : { color: c, kind: 'human' };
+        return s.kind === 'bot'
+          ? { color: c, kind: 'bot', difficulty: s.difficulty, name: s.name }
+          : { color: c, kind: 'human', name: s.name };
       }),
       this.rules,
     );
@@ -189,7 +214,7 @@ export class Room {
     const seat = this.seats[color];
     seat.conn?.send({ t: 'left' });
     if (this.state) {
-      this.seats[color] = { kind: 'bot', difficulty: 'medium' };
+      this.seats[color] = { kind: 'bot', difficulty: 'medium', name: seat.name };
       this.state = {
         ...this.state,
         players: this.state.players.map((p) => (p.color === color ? { ...p, kind: 'bot', difficulty: 'medium' } : p)),
