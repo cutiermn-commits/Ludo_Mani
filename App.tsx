@@ -23,6 +23,7 @@ export default function App() {
         {screen.name === 'menu' && (
           <MenuScreen
             onStart={(players, rules) => setScreen({ name: 'local', game: createGame(players, rules), id: Date.now() })}
+            onResume={(game) => setScreen({ name: 'local', game, id: Date.now() })}
             onOnline={() => setScreen({ name: 'online' })}
           />
         )}

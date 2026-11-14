@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, Share, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { ScrollView, ActivityIndicator, Alert, Pressable, Share, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { Color } from '../engine/board';
 import { Difficulty, Rules, currentPlayer } from '../engine/game';
 import { ROOM_CODE_ALPHABET, ROOM_CODE_LENGTH, SeatView } from '../net/protocol';
@@ -85,7 +85,7 @@ export function OnlineScreen({ onExit }: { onExit: () => void }) {
     const isHost = room.hostColor === me.color;
     const filled = room.seats.filter((s) => s.kind !== 'open').length;
     return (
-      <View style={styles.wrap}>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
         <Text style={styles.label}>Room code</Text>
         <Pressable
           accessibilityRole="button"
@@ -146,7 +146,7 @@ export function OnlineScreen({ onExit }: { onExit: () => void }) {
         <Pressable onPress={leave} accessibilityRole="button" hitSlop={10}>
           <Text style={styles.link}>Leave room</Text>
         </Pressable>
-      </View>
+      </ScrollView>
     );
   }
 
@@ -154,7 +154,7 @@ export function OnlineScreen({ onExit }: { onExit: () => void }) {
   const busy = status === 'connecting' || status === 'reconnecting';
   const validCode = code.length === ROOM_CODE_LENGTH;
   return (
-    <View style={styles.wrap}>
+    <ScrollView style={styles.scroll} contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
       <Text style={styles.title}>Play online</Text>
       {!SERVER_URL && <Text style={styles.error}>Online play is not configured in this build.</Text>}
 
@@ -205,12 +205,13 @@ export function OnlineScreen({ onExit }: { onExit: () => void }) {
       <Pressable onPress={leave} accessibilityRole="button" hitSlop={10}>
         <Text style={styles.link}>‹ Back</Text>
       </Pressable>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, padding: 24, justifyContent: 'center', gap: 16, maxWidth: 520, width: '100%', alignSelf: 'center' },
+  scroll: { flex: 1 },
+  wrap: { flexGrow: 1, padding: 24, justifyContent: 'center', gap: 16, maxWidth: 520, width: '100%', alignSelf: 'center' },
   title: { color: UI.text, fontSize: 34, fontWeight: '900', textAlign: 'center' },
   label: { color: UI.muted, textAlign: 'center', fontSize: 14 },
   code: { color: UI.text, fontSize: 48, fontWeight: '900', letterSpacing: 10, textAlign: 'center' },
@@ -229,7 +230,7 @@ const styles = StyleSheet.create({
   seats: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   seat: { flexBasis: '47%', flexGrow: 1, borderRadius: 16, paddingVertical: 16, alignItems: 'center' },
   seatColor: { color: '#FFFFFF', fontSize: 18, fontWeight: '800' },
-  seatKind: { color: '#FFFFFF', fontSize: 14, marginTop: 4 },
+  seatKind: { color: '#FFFFFF', fontSize: 14, marginTop: 4, textAlign: 'center', paddingHorizontal: 6 },
   host: { color: '#FFFFFF', fontSize: 11, fontWeight: '900', marginTop: 4, opacity: 0.85 },
   rules: { backgroundColor: UI.surface, borderRadius: 16, padding: 16, gap: 12 },
   ruleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },

@@ -3,6 +3,7 @@
 Ludo for 2–4 players:
 - **On one device**: pass-and-play, with any seat played by the computer (Easy / Medium / Hard).
 - **Online with friends**: create a room, share the 6-letter code, play in real time. Empty seats can be computer players.
+- **Resume**: an unfinished game on one device is saved on the device and offered as "Resume game" after the app is closed.
 - Configurable house rules. No accounts, no ads, no tracking.
 
 ## Architecture
@@ -29,6 +30,8 @@ Ludo for 2–4 players:
 | `src/engine/board.ts` | Board geometry: track, home columns, safe squares |
 | `src/engine/game.ts` | Pure rules engine (dice values are passed in, so it is deterministic) |
 | `src/engine/ai.ts` | Computer players: easy / medium / hard |
+| `src/engine/persist.ts` | Versioned save format + strict validation of saved games |
+| `src/storage/savedGame.ts` | On-device save/load (AsyncStorage), writes queued in order |
 | `src/net/protocol.ts` | Wire protocol + strict validation of client messages |
 | `src/net/useOnlineRoom.ts` | Client connection hook: reconnect with backoff, resume after the app returns from background |
 | `src/ui/*` | Menu, local game, online lobby/game, shared board view, privacy policy |

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { chooseBotMove } from '../engine/ai';
 import { GameState, currentPlayer, legalMoves, move, roll } from '../engine/game';
+import { saveGame } from '../storage/savedGame';
 import { GameView } from './GameView';
 
 const BOT_ROLL_DELAY = 700;
@@ -17,6 +18,12 @@ export function LocalGame({ initial, onExit }: { initial: GameState; onExit: () 
     (token: number) => setState((s) => (s.phase === 'move' && legalMoves(s).includes(token) ? move(s, token) : s)),
     [],
   );
+
+  // Save after every change so the game can be resumed after the app is closed.
+  // A finished game removes the save.
+  useEffect(() => {
+    saveGame(state);
+  }, [state]);
 
   useEffect(() => {
     const p = currentPlayer(state);

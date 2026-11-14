@@ -17,6 +17,7 @@ Roll, race and capture in the classic board game for 2–4 players.
 • Pass-and-play with family on one iPhone or iPad
 • Computer opponents with three levels: Easy, Medium and Hard
 • Mix and match: friends and computer players in the same game
+• Close the app any time: your game on this device is saved for later
 • Choose your house rules: bonus rolls for captures and getting home, three-sixes penalty
 • No ads, no accounts, no chat: just the game
 • Offline play works without internet
@@ -40,7 +41,7 @@ These were rendered from the web build. Before final submission, replace them wi
 ## Differentiation ideas (guideline 4.3(b) risk)
 Pick at least one before submitting:
 1. Step-by-step token movement animation and sound effects.
-2. Resume an unfinished game (persist state locally).
+2. ~~Resume an unfinished game~~ (done).
 4. A distinctive visual theme or art style rather than the standard board look.
 5. Local stats or achievements (Game Center).
 6. ~~Online multiplayer~~ (done: room codes, server-authoritative).
