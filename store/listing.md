@@ -8,15 +8,18 @@ Character limits below are App Store Connect field limits; confirm them in the f
 
 **Category**: Games → Board (secondary: Family)
 
-**Promotional text**: Play the classic race game with friends on one device or against the computer. No ads, no accounts, no internet needed.
+**Promotional text**: Play the classic race game online with friends, on one device, or against the computer. No ads, no accounts.
 
 **Description**:
 Roll, race and capture in the classic board game for 2–4 players.
 
-• Pass-and-play with friends and family on one iPhone or iPad
-• Play against computer opponents, or mix humans and computers
+• Play online with friends: create a room and share the 6-letter code
+• Pass-and-play with family on one iPhone or iPad
+• Computer opponents with three levels: Easy, Medium and Hard
+• Mix and match: friends and computer players in the same game
 • Choose your house rules: bonus rolls for captures and getting home, three-sixes penalty
-• Works completely offline: no ads, no accounts, no data collected
+• No ads, no accounts, no chat: just the game
+• Offline play works without internet
 
 **Keywords** (max 100, comma-separated): `ludo,board game,dice,family,offline,pachisi,multiplayer,classic,race,strategy`
 (Avoid other companies' brand or game names in keywords; Apple can reject keyword metadata that uses trademarks.)
@@ -24,7 +27,7 @@ Roll, race and capture in the classic board game for 2–4 players.
 **Support URL**: [required]
 **Privacy Policy URL**: [required, the hosted PRIVACY.md]
 
-**Review notes**: "Fully offline game, no login required. Tap seats on the main menu to choose human/computer players, then Start game. Tap the dice to roll, then tap a highlighted token."
+**Review notes**: "No login required. Local: tap seats to choose player/computer, then 'Start game on this device'. Online: 'Play online with friends' > 'Create a room'. With one device, tap the open seats to add computer players, then Start game. To test with two devices, enter the room code on the second device. Players are shown only as colours; there is no chat or user-generated content."
 
 ## Screenshots (in `screenshots/`)
 | File | Slot |
@@ -38,7 +41,7 @@ These were rendered from the web build. Before final submission, replace them wi
 Pick at least one before submitting:
 1. Step-by-step token movement animation and sound effects.
 2. Resume an unfinished game (persist state locally).
-3. Bot difficulty levels.
 4. A distinctive visual theme or art style rather than the standard board look.
 5. Local stats or achievements (Game Center).
-6. Online multiplayer (Game Center turn-based). This is a much larger scope: it needs networking, a privacy-policy update and moderation considerations.
+6. ~~Online multiplayer~~ (done: room codes, server-authoritative).
+7. ~~Bot difficulty levels~~ (done).

@@ -1,21 +1,15 @@
 import * as Haptics from 'expo-haptics';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Color, FINISHED } from '../engine/board';
-import { GameEvent, GameState, chooseBotMove, currentPlayer, legalMoves, move, roll } from '../engine/game';
+import { GameEvent, GameState, currentPlayer, legalMoves } from '../engine/game';
 import { Board } from './Board';
 import { Dice } from './Dice';
 import { LABEL, PALETTE, UI } from './theme';
 
-const BOT_ROLL_DELAY = 700;
-const BOT_MOVE_DELAY = 550;
 const AUTO_MOVE_DELAY = 350;
 
-function rollDie(): number {
-  return Math.floor(Math.random() * 6) + 1;
-}
-
-function haptic(kind: 'light' | 'success' | 'heavy') {
+export function haptic(kind: 'light' | 'success' | 'heavy') {
   if (Platform.OS === 'web') return;
   if (kind === 'success') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
   else Haptics.impactAsync(kind === 'heavy' ? Haptics.ImpactFeedbackStyle.Heavy : Haptics.ImpactFeedbackStyle.Light).catch(() => {});
@@ -41,54 +35,53 @@ function describe(e: GameEvent): string {
 }
 
 interface Props {
-  initial: GameState;
+  state: GameState;
+  /** Whether this device may act for the given colour (local humans, or "my" colour online). */
+  canAct: (color: Color) => boolean;
+  onRoll: () => void;
+  onMove: (token: number) => void;
   onExit: () => void;
+  /** Optional status line shown above the board (e.g. connection or turn timer). */
+  banner?: string | null;
+  /** Online: the colour this device plays, highlighted in the score bar. */
+  youColor?: Color | null;
 }
 
-export function GameScreen({ initial, onExit }: Props) {
-  const [state, setState] = useState(initial);
+export function GameView({ state, canAct, onRoll, onMove, onExit, banner, youColor }: Props) {
   const { width, height } = useWindowDimensions();
-  const boardSize = Math.floor(Math.min(width - 24, height - 220, 900));
+  const boardSize = Math.floor(Math.min(width - 24, height - 240, 900));
 
   const player = currentPlayer(state);
   const moves = useMemo(() => legalMoves(state), [state]);
-  const isHumanTurn = player.kind === 'human' && state.phase !== 'over';
+  const myTurn = state.phase !== 'over' && player.kind === 'human' && canAct(player.color);
 
-  const doRoll = useCallback(() => {
-    setState((s) => (s.phase === 'roll' ? roll(s, rollDie()) : s));
-    haptic('light');
-  }, []);
-
-  const doMove = useCallback((token: number) => {
-    setState((s) => {
-      if (s.phase !== 'move' || !legalMoves(s).includes(token)) return s;
-      const next = move(s, token);
-      if (next.lastEvent.type === 'moved' && next.lastEvent.captured.length) haptic('heavy');
-      if (next.lastEvent.type === 'win') haptic('success');
-      return next;
-    });
-  }, []);
-
-  // Drive bots, and auto-play a human's only legal move.
+  // Haptics for notable events, whoever caused them.
+  const lastEvent = useRef(state.lastEvent);
   useEffect(() => {
-    if (state.phase === 'over') return;
-    let t: ReturnType<typeof setTimeout> | undefined;
-    if (player.kind === 'bot') {
-      if (state.phase === 'roll') t = setTimeout(doRoll, BOT_ROLL_DELAY);
-      else t = setTimeout(() => doMove(chooseBotMove(state)), BOT_MOVE_DELAY);
-    } else if (state.phase === 'move' && moves.length === 1) {
-      t = setTimeout(() => doMove(moves[0]), AUTO_MOVE_DELAY);
-    }
-    return () => {
-      if (t) clearTimeout(t);
-    };
-  }, [state, player.kind, moves, doRoll, doMove]);
+    if (lastEvent.current === state.lastEvent) return;
+    lastEvent.current = state.lastEvent;
+    const e = state.lastEvent;
+    if (e.type === 'moved' && e.captured.length) haptic('heavy');
+    if (e.type === 'win') haptic('success');
+  }, [state.lastEvent]);
 
-  const onTokenPress = (color: Color, token: number) => {
-    if (isHumanTurn && color === player.color) doMove(token);
+  // Auto-play the only legal move for the player on this device.
+  useEffect(() => {
+    if (!myTurn || state.phase !== 'move' || moves.length !== 1) return;
+    const t = setTimeout(() => onMove(moves[0]), AUTO_MOVE_DELAY);
+    return () => clearTimeout(t);
+  }, [myTurn, state.phase, moves, onMove]);
+
+  const roll = () => {
+    haptic('light');
+    onRoll();
   };
 
-  const movable = isHumanTurn ? moves.map((token) => ({ color: player.color, token })) : [];
+  const onTokenPress = (color: Color, token: number) => {
+    if (myTurn && color === player.color) onMove(token);
+  };
+
+  const movable = myTurn && state.phase === 'move' ? moves.map((token) => ({ color: player.color, token })) : [];
   const shownDice = state.dice ?? (state.lastEvent.type === 'rolled' || state.lastEvent.type === 'no-moves' ? state.lastEvent.value : null);
 
   return (
@@ -101,11 +94,14 @@ export function GameScreen({ initial, onExit }: Props) {
           {state.players.map((p) => (
             <View key={p.color} style={[styles.score, { borderColor: p.color === player.color ? '#FFFFFF' : 'transparent' }]}>
               <View style={[styles.dot, { backgroundColor: PALETTE[p.color].main }]} />
+              {p.color === youColor && <Text style={styles.you}>You</Text>}
               <Text style={styles.scoreText}>{p.tokens.filter((t) => t === FINISHED).length}/4</Text>
             </View>
           ))}
         </View>
       </View>
+
+      {banner ? <Text style={styles.banner}>{banner}</Text> : null}
 
       <Board size={boardSize} players={state.players} movable={movable} onTokenPress={onTokenPress} />
 
@@ -122,16 +118,16 @@ export function GameScreen({ initial, onExit }: Props) {
             <Dice
               value={shownDice}
               color={PALETTE[player.color].main}
-              enabled={isHumanTurn && state.phase === 'roll'}
-              onPress={doRoll}
+              enabled={myTurn && state.phase === 'roll'}
+              onPress={roll}
             />
             <View style={styles.status}>
               <Text style={[styles.turn, { color: PALETTE[player.color].main }]}>
                 {LABEL[player.color]}
-                {player.kind === 'bot' ? ' (computer)' : ''}
+                {player.kind === 'bot' ? ' (computer)' : player.color === youColor ? ' (you)' : ''}
               </Text>
               <Text style={styles.message}>
-                {isHumanTurn && state.phase === 'roll' && state.lastEvent.type !== 'no-moves' && state.lastEvent.type !== 'forfeit'
+                {myTurn && state.phase === 'roll' && state.lastEvent.type !== 'no-moves' && state.lastEvent.type !== 'forfeit'
                   ? 'Tap the dice to roll'
                   : describe(state.lastEvent)}
               </Text>
@@ -151,6 +147,8 @@ const styles = StyleSheet.create({
   score: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, borderWidth: 2, backgroundColor: UI.surface },
   dot: { width: 12, height: 12, borderRadius: 6 },
   scoreText: { color: UI.text, fontWeight: '700' },
+  you: { color: UI.accent, fontWeight: '800', fontSize: 12 },
+  banner: { color: UI.accent, fontSize: 14, fontWeight: '600', textAlign: 'center' },
   footer: { width: '100%', maxWidth: 900, flexDirection: 'row', alignItems: 'center', gap: 16, minHeight: 90 },
   status: { flex: 1 },
   turn: { fontSize: 22, fontWeight: '800' },

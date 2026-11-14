@@ -3,26 +3,28 @@ import React, { useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { GameState, createGame } from './src/engine/game';
-import { GameScreen } from './src/ui/GameScreen';
+import { LocalGame } from './src/ui/LocalGame';
 import { MenuScreen } from './src/ui/MenuScreen';
+import { OnlineScreen } from './src/ui/OnlineScreen';
 import { UI } from './src/ui/theme';
 
+type Screen = { name: 'menu' } | { name: 'local'; game: GameState; id: number } | { name: 'online' };
+
 export default function App() {
-  const [game, setGame] = useState<GameState | null>(null);
-  const [gameId, setGameId] = useState(0);
+  const [screen, setScreen] = useState<Screen>({ name: 'menu' });
+  const toMenu = () => setScreen({ name: 'menu' });
 
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.root}>
         <StatusBar style="light" />
-        {game ? (
-          // key forces a fresh GameScreen for every new game
-          <GameScreen key={gameId} initial={game} onExit={() => setGame(null)} />
-        ) : (
-          <MenuScreen onStart={(players, rules) => {
-              setGameId((n) => n + 1);
-              setGame(createGame(players, rules));
-            }} />
+        {screen.name === 'local' && <LocalGame key={screen.id} initial={screen.game} onExit={toMenu} />}
+        {screen.name === 'online' && <OnlineScreen onExit={toMenu} />}
+        {screen.name === 'menu' && (
+          <MenuScreen
+            onStart={(players, rules) => setScreen({ name: 'local', game: createGame(players, rules), id: Date.now() })}
+            onOnline={() => setScreen({ name: 'online' })}
+          />
         )}
       </SafeAreaView>
     </SafeAreaProvider>

@@ -1,26 +1,51 @@
-# Ludo — iOS app (Expo / React Native)
+# Ludo: iOS app (Expo / React Native) + online game server
 
-Offline Ludo for 2–4 players: pass-and-play and/or computer opponents, with configurable house rules.
-No accounts, no network, no ads, no data collection.
+Ludo for 2–4 players:
+- **On one device**: pass-and-play, with any seat played by the computer (Easy / Medium / Hard).
+- **Online with friends**: create a room, share the 6-letter code, play in real time. Empty seats can be computer players.
+- Configurable house rules. No accounts, no ads, no tracking.
 
-## Project layout
+## Architecture
+
+```
+ iPhone / iPad app (Expo)                     Game server (Node.js, single process)
+ ┌──────────────────────────┐   wss://   ┌──────────────────────────────────────┐
+ │ UI (src/ui)              │◀──JSON────▶│ server/src/server.ts  sockets, limits │
+ │ useOnlineRoom (src/net)  │            │ server/src/room.ts    rooms, turns,   │
+ │ Local bots (src/engine)  │            │                       timers, bots    │
+ └────────────┬─────────────┘            └──────────────────┬───────────────────┘
+              │      same code, imported by both            │
+              └──────────▶ src/engine (rules + AI) ◀────────┘
+                          src/net/protocol.ts (message types + validation)
+```
+
+- **One rules engine** (`src/engine`) is used by the app for local play and by the server for online play, so the rules cannot drift apart.
+- **The server is authoritative online**: it rolls the dice (`crypto.randomInt`), validates every move and drives bots. A modified app cannot cheat.
+- **No user-generated content**: players are identified only by colour (no names, no chat). This keeps the app out of App Store Review Guideline 1.2, which requires filtering, reporting and blocking for apps where users post content.
+- **Games never stall**: if it's an online player's turn and they don't act within 30 s (8 s if they've disconnected), the server plays that turn for them. A player who leaves is replaced by a computer player. A dropped connection resumes automatically with a secret session token.
 
 | Path | What it is |
 |---|---|
-| `src/engine/board.ts` | Board geometry: 52-square track, home columns, safe squares, cell coordinates |
-| `src/engine/game.ts` | Pure rules engine (deterministic; dice values are passed in) + heuristic bot |
-| `src/engine/game.test.ts` | Rules tests, including a seeded full 4-bot game |
-| `src/ui/*` | Board (SVG), dice, menu, game screen, in-app privacy policy |
-| `app.json` | App config: name, bundle ID, icon, iOS settings |
-| `eas.json` | EAS Build / Submit profiles |
-| `store/` | App Store listing draft + generated screenshots |
-| `PRIVACY.md` | Privacy policy to host at a public URL |
+| `src/engine/board.ts` | Board geometry: track, home columns, safe squares |
+| `src/engine/game.ts` | Pure rules engine (dice values are passed in, so it is deterministic) |
+| `src/engine/ai.ts` | Computer players: easy / medium / hard |
+| `src/net/protocol.ts` | Wire protocol + strict validation of client messages |
+| `src/net/useOnlineRoom.ts` | Client connection hook: reconnect with backoff, resume after the app returns from background |
+| `src/ui/*` | Menu, local game, online lobby/game, shared board view, privacy policy |
+| `server/` | WebSocket game server, tests, Dockerfile |
+| `store/` | App Store listing draft + screenshots |
+| `PRIVACY.md` | Privacy policy to host publicly (keep identical to `src/ui/PrivacyModal.tsx`) |
 
-### Rules implemented
-- Need a 6 to leave base; a 6 gives another roll.
-- Landing on an opponent on a non-safe square sends it back to base. Safe = the 4 start squares + 4 star squares.
-- Exact roll needed to reach the centre. First player to finish all 4 tokens wins.
-- Toggles in the menu: extra roll after a capture, extra roll when a token gets home, three 6s in a row forfeits the turn.
+### Computer player strength (measured, not estimated)
+Two-player games with seeded dice, colours alternated, 1,000 games per pairing:
+
+| Pairing | Win rate of first |
+|---|---|
+| Hard vs Easy | 86.5% |
+| Medium vs Easy | 82.9% |
+| Hard vs Medium | 54.6% (≈56% after tuning, 2,000 games) |
+
+Ludo is dominated by dice luck, so even a much smarter player wins only somewhat more often. Hard plans one move ahead using capture probabilities. A deeper search would add only a little strength.
 
 ## Develop
 
@@ -29,34 +54,61 @@ npm install
 ```
 
 ```bash
-npm test          # rules engine tests
+cd server && npm install && cd ..
+```
+
+Run the server and the app in two terminals:
+
+```bash
+cd server && npm run dev
 ```
 
 ```bash
-npm run typecheck
+cp .env.example .env    # EXPO_PUBLIC_SERVER_URL=ws://<your computer's LAN IP>:8080 for a real phone
 ```
 
 ```bash
-npx expo start    # scan the QR code with Expo Go on an iPhone, or press w for web
+npx expo start
 ```
 
-All dependencies (`react-native-svg`, `expo-haptics`, `react-native-safe-area-context`) are included in Expo Go, so no custom dev build is needed during development.
+Tests and type checks:
+
+```bash
+npm test && npm run typecheck
+```
+
+```bash
+cd server && npm test && npm run typecheck
+```
+
+## Deploy the game server
+
+Any host that runs a long-lived Node.js process or Docker container **and supports WebSockets over TLS** works (for example Fly.io, Render, Railway, or a small VM behind Caddy or nginx). Steps:
+
+1. Build the image from the **repository root**: `docker build -f server/Dockerfile -t ludo-server .` (the build also runs the server tests). Or, without Docker: `cd server && npm ci && npm run build && node dist/index.js`.
+2. Expose port `8080` (or set `PORT`). Health check: `GET /health`.
+3. Terminate TLS at the host so the public URL is `wss://…`. iOS blocks unencrypted connections to remote servers in release builds.
+4. Put the URL in `eas.json` → `build.production.env.EXPO_PUBLIC_SERVER_URL` (and `preview`). It is baked into the app at build time.
+5. Optional: `ALLOWED_ORIGINS` (comma-separated) restricts browser origins. The native app sends none.
+
+**Current limits (by design, for v1):**
+- **Single process, in memory.** Rooms are not shared between instances. Run exactly **one** instance. Restarting or redeploying ends all live games, so deploy at quiet times. Scaling out later needs shared room state (e.g. Redis) or room-to-instance routing.
+- Default capacity cap: 2,000 rooms (`maxRooms`). Per-connection rate limit: 10 msgs/s. Message size limit: 1 KB.
+- Logs are structured JSON with no IPs and no tokens.
 
 ## Ship to the App Store (no Mac required)
 
 ### 1. One-time accounts
-1. **Apple Developer Program**: https://developer.apple.com/programs/enroll/. 99 USD per membership year per Apple; local pricing may differ. Enrolling as an organisation needs a D-U-N-S number. Approval can take a while, so start now.
-2. **Expo account**: https://expo.dev/signup (free tier includes a limited number of cloud builds).
+1. **Apple Developer Program**: https://developer.apple.com/programs/enroll/. Apple lists it at 99 USD per membership year; local pricing may differ.
+2. **Expo account**: https://expo.dev/signup.
 
 ### 2. Make the app yours
-- `app.json` → `ios.bundleIdentifier`: change `com.yourcompany.ludo` to a reverse-DNS ID you own. It **cannot be changed** after the first upload.
-- `app.json` → `name` is the home-screen name. The App Store name is set separately in App Store Connect and must be unique; plain "Ludo" will almost certainly be taken.
-- `PRIVACY.md` and `src/ui/PrivacyModal.tsx`: fill in the effective date and the support email, and keep the two texts identical.
-- Host `PRIVACY.md` at a public URL (for example GitHub Pages or your website). You also need a **Support URL**.
+- `app.json` → `ios.bundleIdentifier`: replace `com.yourcompany.ludo`. It cannot be changed after the first upload.
+- `eas.json` → `EXPO_PUBLIC_SERVER_URL`: your deployed `wss://` server.
+- `PRIVACY.md` and `src/ui/PrivacyModal.tsx`: fill in the date and the support email. Host `PRIVACY.md` publicly, and set up a Support URL.
 
 ### 3. Create the app record
-App Store Connect → Apps → **+** → New App → platform iOS, bundle ID as above, SKU (any internal string).
-Copy the numeric **Apple ID** of the app (App Information page) into `eas.json` → `submit.production.ios.ascAppId`.
+App Store Connect → Apps → **+** → New App. Copy the app's numeric Apple ID into `eas.json` → `submit.production.ios.ascAppId`.
 
 ### 4. Build and upload
 ```bash
@@ -64,36 +116,27 @@ npx eas-cli@latest login
 ```
 
 ```bash
-npx eas-cli@latest init          # links the project to your Expo account (writes projectId into app.json)
+npx eas-cli@latest init
 ```
 
 ```bash
 npx eas-cli@latest build --platform ios --profile production
 ```
 
-EAS asks to log in to your Apple account and can create the distribution certificate and provisioning profile for you. Build numbers auto-increment (`appVersionSource: remote` + `autoIncrement`).
-
 ```bash
 npx eas-cli@latest submit --platform ios --latest
 ```
 
-This uploads the build to App Store Connect / TestFlight.
+### 5. TestFlight
+Install via TestFlight on at least two devices and play an online game between them. Test switching apps mid-game and toggling airplane mode; the game should resume.
 
-### 5. Test on real devices (TestFlight)
-In App Store Connect → TestFlight, add yourself as an internal tester and install through the TestFlight app. Check on at least one small iPhone, one large iPhone and one iPad (the app declares iPad support).
-
-### 6. Store listing
-Use `store/listing.md` and the screenshots in `store/screenshots/` (sized to Apple's current required specs: iPhone 1206×2622 and iPad 13" 2064×2752).
-- **App Privacy** questionnaire: "Data Not Collected" matches the current code (no analytics, ads or network calls). Re-check if you add any SDK.
-- **Age rating** questionnaire: answer honestly. There is no gambling, no real-money play and no user-generated content.
-- **Export compliance**: `usesNonExemptEncryption: false` is set, so Apple will not ask on each build.
+### 6. Store listing and questionnaires
+- Use `store/listing.md` and `store/screenshots/`. Retake the screenshots from TestFlight before submitting.
+- **App Privacy**: online play transmits gameplay data, which is used only to run the game and kept only in memory, with no identifiers linked to a person. Apple's definition of "collect" covers data sent off the device and stored longer than needed to serve the request in real time, so **"Data Not Collected"** is a defensible answer **if** you keep the server as built (no logging of IPs or gameplay). This is our reading of Apple's definition, not legal advice; confirm it against Apple's current App Privacy Details page when you fill in the form. Apple's definition (verified 2026-11-14): "transmitting data off the device in a way that allows you and/or your third-party partners to access it for a period longer than what is necessary to service the transmitted request in real time." If you want to be cautious, declare **Gameplay Content → App Functionality, not linked to identity, not used for tracking** instead. Over-declaring is lower risk than under-declaring.
+- **Age rating**: no gambling, no real money, and no user-generated content or chat.
+- **Review notes**: tell the reviewer online play needs a second device or uses computer players. A single reviewer can create a room, set the empty seats to computer players and start.
 
 ### 7. Submit for review
-Select the build → Add for Review → Submit. If rejected, read the cited guideline, fix it, rebuild (step 4) and resubmit.
-
-### Updates
-Bump `version` in `app.json` for each App Store release, then repeat steps 4 and 7.
 
 ## Known review risk
-
-App Store Review Guideline **4.3(b)** rejects apps "indistinguishable from what's already widely available", and Ludo is a crowded category. Before submitting, add at least one clear differentiator (ideas in `store/listing.md`) and say so in the review notes.
+App Store Review Guideline **4.3(b)** rejects apps "indistinguishable from what's already widely available", and Ludo is a crowded category. Online rooms with three AI levels and no ads or accounts help, but a distinctive visual style or other unique features further lower the risk.

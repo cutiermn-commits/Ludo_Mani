@@ -2,7 +2,30 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { HOME_COLUMN, TRACK, cellFor, trackIndex } from './board';
-import { GameState, chooseBotMove, createGame, legalMoves, move, roll } from './game';
+import { chooseBotMove } from './ai';
+import { Difficulty, GameState, createGame, legalMoves, move, roll } from './game';
+
+function lcg(seed: number) {
+  let s = seed >>> 0;
+  return () => (s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 2 ** 32;
+}
+
+function winRate(a: Difficulty, b: Difficulty, games: number): number {
+  let wins = 0;
+  for (let i = 0; i < games; i++) {
+    const rng = lcg(i + 1);
+    const [ca, cb] = i % 2 ? (['yellow', 'red'] as const) : (['red', 'yellow'] as const);
+    let s = createGame([
+      { color: ca, kind: 'bot', difficulty: a },
+      { color: cb, kind: 'bot', difficulty: b },
+    ]);
+    while (s.phase !== 'over') {
+      s = s.phase === 'roll' ? roll(s, 1 + Math.floor(rng() * 6)) : move(s, chooseBotMove(s, s.players[s.current].difficulty, rng));
+    }
+    if (s.winner === ca) wins++;
+  }
+  return wins / games;
+}
 
 const twoPlayer = () =>
   createGame([
@@ -91,18 +114,36 @@ test('exact roll is required to finish', () => {
 });
 
 test('bots can play a full 4-player game to completion', () => {
-  let seed = 42;
-  const rand = () => ((seed = (seed * 1103515245 + 12345) % 2 ** 31) % 6) + 1;
+  const rand01 = lcg(42);
+  const rand = () => 1 + Math.floor(rand01() * 6);
   let s = createGame([
     { color: 'red', kind: 'bot' },
-    { color: 'green', kind: 'bot' },
-    { color: 'yellow', kind: 'bot' },
+    { color: 'green', kind: 'bot', difficulty: 'easy' },
+    { color: 'yellow', kind: 'bot', difficulty: 'hard' },
     { color: 'blue', kind: 'bot' },
   ]);
   let steps = 0;
   while (s.phase !== 'over' && steps++ < 20000) {
-    s = s.phase === 'roll' ? roll(s, rand()) : move(s, chooseBotMove(s));
+    s = s.phase === 'roll' ? roll(s, rand()) : move(s, chooseBotMove(s, s.players[s.current].difficulty, rand01));
   }
   assert.equal(s.phase, 'over');
   assert.ok(s.winner);
+});
+
+test('difficulty levels are ordered by strength (seeded, 600 games each)', () => {
+  const hardVsEasy = winRate('hard', 'easy', 600);
+  const mediumVsEasy = winRate('medium', 'easy', 600);
+  const hardVsMedium = winRate('hard', 'medium', 600);
+  assert.ok(hardVsEasy > 0.75, `hard vs easy ${hardVsEasy}`);
+  assert.ok(mediumVsEasy > 0.7, `medium vs easy ${mediumVsEasy}`);
+  assert.ok(hardVsMedium > 0.5, `hard vs medium ${hardVsMedium}`);
+});
+
+test('bots are created with a default difficulty, humans without', () => {
+  const s = createGame([
+    { color: 'red', kind: 'human' },
+    { color: 'blue', kind: 'bot' },
+  ]);
+  assert.equal(s.players[0].difficulty, undefined);
+  assert.equal(s.players[1].difficulty, 'medium');
 });

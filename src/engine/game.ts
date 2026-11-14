@@ -12,10 +12,13 @@ import {
 } from './board';
 
 export type PlayerKind = 'human' | 'bot';
+export type Difficulty = 'easy' | 'medium' | 'hard';
 
 export interface Player {
   color: Color;
   kind: PlayerKind;
+  /** Only meaningful for bots. */
+  difficulty?: Difficulty;
   /** Progress per token: -1 base, 0..50 shared track, 51..55 home column, 56 finished. */
   tokens: number[];
 }
@@ -59,6 +62,7 @@ export interface GameState {
 export interface PlayerSetup {
   color: Color;
   kind: PlayerKind;
+  difficulty?: Difficulty;
 }
 
 export function createGame(setup: PlayerSetup[], rules: Rules = DEFAULT_RULES): GameState {
@@ -68,7 +72,12 @@ export function createGame(setup: PlayerSetup[], rules: Rules = DEFAULT_RULES): 
   // Keep clockwise seating order regardless of how setup was passed.
   const ordered = [...setup].sort((a, b) => COLORS.indexOf(a.color) - COLORS.indexOf(b.color));
   return {
-    players: ordered.map((p) => ({ color: p.color, kind: p.kind, tokens: [IN_BASE, IN_BASE, IN_BASE, IN_BASE] })),
+    players: ordered.map((p) => ({
+      color: p.color,
+      kind: p.kind,
+      ...(p.kind === 'bot' ? { difficulty: p.difficulty ?? 'medium' } : {}),
+      tokens: [IN_BASE, IN_BASE, IN_BASE, IN_BASE],
+    })),
     current: 0,
     dice: null,
     phase: 'roll',
@@ -163,56 +172,4 @@ export function move(state: GameState, tokenIndex: number): GameState {
     return { ...after, dice: null, phase: 'roll', sixesInRow: dice === 6 ? state.sixesInRow : 0 };
   }
   return { ...nextPlayer(after), lastEvent: moved };
-}
-
-/** True if a square (absolute track index) can be hit by an opponent of `color` next turn. */
-export function isThreatened(state: GameState, color: Color, absIndex: number): boolean {
-  if (SAFE_INDICES.has(absIndex)) return false;
-  return state.players.some(
-    (p) =>
-      p.color !== color &&
-      p.tokens.some((prog) => {
-        const from = trackIndex(p.color, prog);
-        if (from === null) return false;
-        const dist = (absIndex - from + 52) % 52;
-        return dist >= 1 && dist <= 6 && prog + dist <= LAST_TRACK_PROGRESS;
-      }),
-  );
-}
-
-/** Simple heuristic bot: returns the token index to move. */
-export function chooseBotMove(state: GameState): number {
-  const moves = legalMoves(state);
-  if (moves.length === 0) throw new Error('No legal moves');
-  const me = currentPlayer(state);
-  const dice = state.dice!;
-
-  let best = moves[0];
-  let bestScore = -Infinity;
-  for (const ti of moves) {
-    const from = me.tokens[ti];
-    const to = targetProgress(from, dice)!;
-    const toAbs = trackIndex(me.color, to);
-    const fromAbs = trackIndex(me.color, from);
-    let score = to; // prefer advancing further tokens slightly
-
-    if (to === FINISHED) score += 100;
-    if (from === IN_BASE) score += 40;
-    if (to > LAST_TRACK_PROGRESS && from <= LAST_TRACK_PROGRESS) score += 30; // safe in home column
-    if (toAbs !== null) {
-      if (SAFE_INDICES.has(toAbs)) score += 15;
-      const hits = state.players.some(
-        (p) => p.color !== me.color && p.tokens.some((pr) => trackIndex(p.color, pr) === toAbs),
-      );
-      if (hits && !SAFE_INDICES.has(toAbs)) score += 60;
-      if (isThreatened(state, me.color, toAbs)) score -= 35;
-    }
-    if (fromAbs !== null && isThreatened(state, me.color, fromAbs)) score += 25; // escape danger
-
-    if (score > bestScore) {
-      bestScore = score;
-      best = ti;
-    }
-  }
-  return best;
 }
