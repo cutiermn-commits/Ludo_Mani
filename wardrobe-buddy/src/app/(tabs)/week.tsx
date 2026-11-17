@@ -6,7 +6,7 @@ import { planWeek } from '@/engine';
 import { useApp } from '@/features/app/AppState';
 import { EXTRA_ICON, TIP_KEY, useWhyText } from '@/features/today/text';
 import { weatherGlyph } from '@/features/today/WeatherStrip';
-import { ItemTile } from '@/features/wardrobe/visuals';
+import { ItemTile, useItemName } from '@/features/wardrobe/visuals';
 import { formatTemp, formatWeekday, type TKey } from '@/i18n';
 import { Card, Chip, Row, Screen, T } from '@/ui/components';
 import { space } from '@/ui/theme';
@@ -19,6 +19,7 @@ export default function Week() {
   const days = useMemo(() => (sameCity && forecast ? forecast.days : []).filter((d) => d.date >= today).slice(0, 7), [forecast, sameCity, today]);
   const history = useMemo(() => outfits.map((o) => ({ date: o.date, itemIds: o.itemIds })), [outfits]);
   const why = useWhyText();
+  const nameOf = useItemName();
   const [open, setOpen] = useState<string | null>(null);
   const plan = useMemo(() => (profile && days.length ? planWeek(days, { items, profile, history, learning }) : []), [days, items, profile, history, learning]);
 
@@ -46,6 +47,12 @@ export default function Week() {
           <Pressable
             key={p.date}
             accessibilityRole="button"
+            accessibilityLabel={t('week.dayA11y', {
+              day: p.date === today ? t('week.today') : capitalize(formatWeekday(p.date, locale)),
+              min: formatTemp(p.weather.feelsMinC, locale),
+              max: formatTemp(p.weather.feelsMaxC, locale),
+              items: its.map(nameOf).join(', ') || t(TIP_KEY[p.result.tips[0] ?? 'emptyWardrobe']),
+            })}
             accessibilityState={{ expanded: isOpen }}
             accessibilityHint={t('week.tapHint')}
             onPress={() => setOpen(isOpen ? null : p.date)}>

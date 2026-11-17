@@ -297,6 +297,7 @@
   "weather.uv": "UV {uv}",
   "weather.wind": "Wind {kmh} km/h",
   "weather.yourGuess": "Your weather",
+  "week.dayA11y": "{day}, feels like {min} to {max}: {items}",
   "week.extras": "Don't forget: {list}",
   "week.noCity": "A grown-up can add your town in settings ⚙️ to plan the week.",
   "week.noForecast": "I need the forecast to plan the week. Try again when you are online.",

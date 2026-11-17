@@ -297,6 +297,7 @@
   "weather.uv": "UV {uv}",
   "weather.wind": "Vind {kmh} km/t",
   "weather.yourGuess": "Dit vejr",
+  "week.dayA11y": "{day}, føles som {min} til {max}: {items}",
   "week.extras": "Husk: {list}",
   "week.noCity": "En voksen kan tilføje din by under indstillinger ⚙️ for at planlægge ugen.",
   "week.noForecast": "Jeg skal bruge vejrudsigten for at planlægge ugen. Prøv igen, når du er online.",

@@ -13,6 +13,7 @@ import { WeatherStrip } from '@/features/today/WeatherStrip';
 import { ItemTile, useItemName } from '@/features/wardrobe/visuals';
 import type { TKey } from '@/i18n';
 import { Button, Card, Chip, Row, Screen, Section, T } from '@/ui/components';
+import { DropIn } from '@/ui/motion';
 import { space } from '@/ui/theme';
 
 const MOOD_ICON: Record<Mood, string> = { happy: '😊', cozy: '🧸', sporty: '⚡', fancy: '✨', chill: '😌' };
@@ -111,20 +112,22 @@ export default function Today() {
       {suggestion && (
         <Card>
           <T variant="heading">{saved ? t('today.otherIdea') : t('today.suggestionTitle')}</T>
-          <View style={{ flexDirection: 'row', gap: space.lg, alignItems: 'center' }}>
-            {profile.useSelfie && profile.selfieUri ? (
-              <SelfieImage uri={profile.selfieUri} size={150} label={t('selfie.a11y')} />
-            ) : (
-              showAvatar && <Avatar look={profile.avatar} outfit={current} size={170} label={t('avatar.wearing', { items: current.map(nameOf).join(', ') })} />
-            )}
-            <View style={{ flex: 1, gap: space.sm }}>
-              <Row wrap style={{ alignItems: 'flex-start' }}>
-                {current.map((it) => (
-                  <ItemTile key={it.id} item={it} size={showAvatar ? 72 : 96} />
-                ))}
-              </Row>
+          <DropIn trigger={currentIds.join(',')}>
+            <View style={{ flexDirection: 'row', gap: space.lg, alignItems: 'center' }}>
+              {profile.useSelfie && profile.selfieUri ? (
+                <SelfieImage uri={profile.selfieUri} size={150} label={t('selfie.a11y')} />
+              ) : (
+                showAvatar && <Avatar look={profile.avatar} outfit={current} size={170} label={t('avatar.wearing', { items: current.map(nameOf).join(', ') })} />
+              )}
+              <View style={{ flex: 1, gap: space.sm }}>
+                <Row wrap style={{ alignItems: 'flex-start' }}>
+                  {current.map((it) => (
+                    <ItemTile key={it.id} item={it} size={showAvatar ? 72 : 96} />
+                  ))}
+                </Row>
+              </View>
             </View>
-          </View>
+          </DropIn>
           {!edits && (
             <View accessibilityRole="summary" style={{ gap: 2 }}>
               <T variant="label">{t('today.why')}</T>

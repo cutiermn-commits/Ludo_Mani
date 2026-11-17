@@ -113,7 +113,7 @@ export function ItemTile({
           },
         ]}>
         {item.photoUri ? (
-          <Image source={{ uri: item.photoUri }} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityIgnoresInvertColors />
+          <Image source={{ uri: item.photoUri }} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityIgnoresInvertColors importantForAccessibility="no" accessibilityElementsHidden />
         ) : (
           <>
             <View style={[tile.blob, { backgroundColor: CLOTHING_HEX[main], width: size * 0.7, height: size * 0.7, borderRadius: size * 0.35 }]} />

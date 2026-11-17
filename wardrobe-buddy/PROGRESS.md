@@ -12,7 +12,7 @@ _Last updated: 2026-11-17 (Claude Code)_
 | 4. Me | ✅ Done (device test pending) | Onboarding (6 steps), parental gate (screen test: can't be skipped, 30 s pause after 3 misses), profile, avatar maker, theme, language, likes, **optional selfie, always blurred above the shoulders** (D-045; checked in a web test). Front-camera behaviour on Android depends on the phone's camera app (Expo docs) |
 | 5. Today + Week | ✅ Done | Weather card, mood picker, avatar wearing the outfit, swap tabs, "Why this?", don't-forget chips; Week days expand to show why + what to remember. Exit test: 120 items, today + 7-day plan well under 2 s |
 | 6. Rating + learning | ✅ Done (device test pending) | Stars + reason chips, "I wore this", learning shown in Me + reset; **outfit diary photo** (blurred like selfies, optional, from the rating screen) and "My outfit diary" in Me. Exit: ratings change the next suggestion (engine test) |
-| 7. Polish | ⬜ Not started | |
+| 7. Polish | ✅ Done (device test pending) | Outfit "drops in" on change (off with reduced motion), haptics on choices (expo-haptics), a11y test over every screen (roles, labels, images), WCAG AA contrast test, Danish copy review list `docs/COPY_REVIEW.md` (D-011) |
 | 8. Release prep | ⬜ Not started | |
 
 ## What she can do now (5-line note)

@@ -17,6 +17,10 @@
       "network": "none (loads bundled fonts only)",
       "why": "template default, used by expo-router/vector icons"
     },
+    "expo-haptics": {
+      "network": "none (grep: no fetch/XHR in build/)",
+      "why": "gentle haptic feedback on choices (UX, Phase 7); uses the VIBRATE permission already present"
+    },
     "expo-image-manipulator": {
       "network": "none (grep: no fetch/XHR in build/)",
       "why": "resize/re-encode photos and make the colour thumbnail on-device"

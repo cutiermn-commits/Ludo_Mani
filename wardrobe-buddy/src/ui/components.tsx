@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { tapFeedback } from './haptics';
 import { radius, space, TAP } from './theme';
 import { useTheme } from './useTheme';
 
@@ -60,7 +61,10 @@ export function Button({
       accessibilityHint={hint}
       accessibilityState={{ disabled: !!disabled }}
       disabled={disabled}
-      onPress={onPress}
+      onPress={() => {
+        tapFeedback(kind === 'primary' ? 'confirm' : 'select');
+        onPress();
+      }}
       style={({ pressed }) => [
         styles.button,
         { backgroundColor: bg, borderColor: kind === 'danger' ? '#B3261E' : kind === 'primary' ? c.primary : c.border },
@@ -81,7 +85,14 @@ export function Chip({ label, selected, onPress, icon, a11yLabel }: { label: str
       accessibilityRole={onPress ? 'button' : 'text'}
       accessibilityLabel={a11yLabel ?? label}
       accessibilityState={onPress ? { selected: !!selected } : undefined}
-      onPress={onPress}
+      onPress={
+        onPress
+          ? () => {
+              tapFeedback();
+              onPress();
+            }
+          : undefined
+      }
       disabled={!onPress}
       style={({ pressed }) => [
         styles.chip,
