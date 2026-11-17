@@ -4,6 +4,7 @@ import { Pressable, Switch, Text } from 'react-native';
 
 import { RATING_REASONS, type ClothingItem, type RatingReason } from '@/domain/types';
 import { useApp } from '@/features/app/AppState';
+import { DiaryPhotoCard } from '@/features/me/DiaryPhotoCard';
 import { ItemTile } from '@/features/wardrobe/visuals';
 import type { TKey } from '@/i18n';
 import { Button, Card, Chip, Row, Screen, T } from '@/ui/components';
@@ -74,6 +75,7 @@ export default function Rate() {
           <Switch accessibilityLabel={t('rate.wore')} value={wore} onValueChange={setWore} trackColor={{ true: c.primary, false: c.border }} />
         </Row>
       </Card>
+      <DiaryPhotoCard outfitId={outfit.id} />
       <Button label={t('common.save')} onPress={save} disabled={stars === 0} />
     </Screen>
   );

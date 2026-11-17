@@ -1,4 +1,4 @@
-import type { ClothingItem, LearningState, Outfit, Profile, Rating } from '@/domain/types';
+import type { ClothingItem, DiaryPhoto, LearningState, Outfit, Profile, Rating } from '@/domain/types';
 import { initialLearning } from '@/engine';
 import type { CachedForecast } from '@/services/weather/types';
 
@@ -12,6 +12,8 @@ export interface AppData {
   ratings: Rating[];
   learning: LearningState;
   forecast: CachedForecast | null;
+  /** "I wore this" outfit photos, always stored blurred (Phase 6). */
+  diary: DiaryPhoto[];
 }
 
 const PREFIX = 'wb:v1:';
@@ -22,10 +24,11 @@ const KEYS = {
   ratings: `${PREFIX}ratings`,
   learning: `${PREFIX}learning`,
   forecast: `${PREFIX}forecast`,
+  diary: `${PREFIX}diary`,
 } as const satisfies Record<keyof AppData, string>;
 
 export function emptyAppData(): AppData {
-  return { profile: null, items: [], outfits: [], ratings: [], learning: initialLearning(), forecast: null };
+  return { profile: null, items: [], outfits: [], ratings: [], learning: initialLearning(), forecast: null, diary: [] };
 }
 
 /** Bad or missing JSON falls back to the default instead of crashing the app. */
@@ -49,6 +52,7 @@ export function createRepository(storage: StorageAdapter) {
         ratings: await read(storage, KEYS.ratings, d.ratings),
         learning: await read(storage, KEYS.learning, d.learning),
         forecast: await read(storage, KEYS.forecast, d.forecast),
+        diary: await read(storage, KEYS.diary, d.diary),
       };
     },
     async save<K extends keyof AppData>(key: K, value: AppData[K]): Promise<void> {

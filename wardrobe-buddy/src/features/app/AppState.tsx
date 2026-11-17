@@ -3,7 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useLayoutEffect, use
 
 import { deviceStorage } from '@/data/kv';
 import { createRepository, emptyAppData, type AppData } from '@/data/repository';
-import type { City, ClothingItem, Locale, Mood, Outfit, Profile, Rating, WeatherDay } from '@/domain/types';
+import type { City, ClothingItem, DiaryPhoto, Locale, Mood, Outfit, Profile, Rating, WeatherDay } from '@/domain/types';
 import { applyRating, initialLearning, pruneLearning } from '@/engine';
 import { detectLocale, translate, type TKey, type TParams } from '@/i18n';
 import { photoStore as devicePhotoStore } from '@/services/photos/store';
@@ -45,6 +45,8 @@ interface AppActions {
   setManualToday: (d: WeatherDay | null) => void;
   /** Town search. `consented` is the parent's choice (from the profile, or from onboarding before the profile exists). */
   searchCity: (query: string, locale: Locale, consented: boolean) => Promise<City[]>;
+  addDiaryPhoto: (entry: DiaryPhoto) => Promise<void>;
+  removeDiaryPhoto: (id: string) => Promise<void>;
   photos: PhotoStore;
 }
 
@@ -94,7 +96,7 @@ export function AppProvider({
       // Start-up sweep: image caches (may hold unblurred or EXIF copies if the app was killed
       // mid-processing) and saved photos nothing refers to (abandoned edits or set-up).
       await photos.purgeCaches().catch(() => undefined);
-      const used = new Set([...data.items.map((i) => i.photoUri), data.profile?.selfieUri].filter(Boolean));
+      const used = new Set([...data.items.map((i) => i.photoUri), data.profile?.selfieUri, ...data.diary.map((d) => d.photoUri)].filter(Boolean));
       for (const uri of await photos.listSaved().catch(() => [] as string[])) if (!used.has(uri)) await photos.remove(uri).catch(() => undefined);
     });
     return () => {
@@ -185,6 +187,16 @@ export function AppProvider({
         await patch('learning', applyRating(ref.current.learning, r, outfit, ref.current.items));
       },
       resetLearning: async () => patch('learning', initialLearning()),
+      addDiaryPhoto: async (entry) => {
+        const old = ref.current.diary.find((d) => d.outfitId === entry.outfitId);
+        await patch('diary', [...ref.current.diary.filter((d) => d.outfitId !== entry.outfitId), entry]);
+        if (old && old.photoUri !== entry.photoUri) await photos.remove(old.photoUri);
+      },
+      removeDiaryPhoto: async (id) => {
+        const gone = ref.current.diary.find((d) => d.id === id);
+        await patch('diary', ref.current.diary.filter((d) => d.id !== id));
+        if (gone) await photos.remove(gone.photoUri);
+      },
       deleteEverything: async () => {
         requestSeq.current += 1; // ignore any weather reply still in flight
         ref.current = { ...ref.current, ...emptyAppData() };

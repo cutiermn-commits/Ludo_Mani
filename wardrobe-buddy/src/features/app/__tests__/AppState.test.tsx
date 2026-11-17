@@ -88,3 +88,32 @@ describe('AppState', () => {
     expect(result.current.t('tab.today')).toBe('Today');
   });
 });
+
+describe('photo files (Phase 6 diary + start-up sweep)', () => {
+  it('keeps item, selfie and diary photos; deletes only orphans', async () => {
+    const photos = {
+      save: jest.fn(), temp: jest.fn(), discard: jest.fn(), removeAll: jest.fn(),
+      remove: jest.fn(async () => undefined),
+      purgeCaches: jest.fn(async () => undefined),
+      listSaved: jest.fn(async () => ['file:///p/item.jpg', 'file:///p/selfie.jpg', 'file:///p/diary.jpg', 'file:///p/orphan.jpg']),
+    };
+    const storage = createMemoryStorage({
+      'wb:v1:items': JSON.stringify([{ id: 'a', category: 'top', colors: ['red'], warmth: 1, waterproof: false, windproof: false, styleTags: [], occasions: [], favorite: false, inLaundry: false, createdAt: 'x', photoUri: 'file:///p/item.jpg' }]),
+      'wb:v1:profile': JSON.stringify(profile({ selfieUri: 'file:///p/selfie.jpg' })),
+      'wb:v1:diary': JSON.stringify([{ id: 'd1', outfitId: 'o1', photoUri: 'file:///p/diary.jpg', faceBlurred: true }]),
+    });
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <AppProvider storage={storage} weather={{ searchCity: jest.fn(), getForecast: jest.fn(async () => []) }} photos={photos}>
+        {children}
+      </AppProvider>
+    );
+    const { result } = await renderHook(() => useApp(), { wrapper });
+    await waitFor(() => expect(photos.remove).toHaveBeenCalledWith('file:///p/orphan.jpg'));
+    expect(photos.remove).toHaveBeenCalledTimes(1);
+    expect(photos.purgeCaches).toHaveBeenCalled();
+
+    await act(() => result.current.removeDiaryPhoto('d1'));
+    expect(result.current.diary).toEqual([]);
+    expect(photos.remove).toHaveBeenLastCalledWith('file:///p/diary.jpg');
+  });
+});

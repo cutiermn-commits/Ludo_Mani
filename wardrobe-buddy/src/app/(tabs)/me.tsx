@@ -5,6 +5,7 @@ import type { StyleTag, ThemeMode } from '@/domain/types';
 import { summarizeLearning } from '@/engine';
 import { useApp } from '@/features/app/AppState';
 import { Avatar } from '@/features/me/Avatar';
+import { DiaryList } from '@/features/me/DiaryPhotoCard';
 import { SelfieCard } from '@/features/me/SelfieCard';
 import { AvatarMaker, ColorPicker, LanguagePicker, StylePrefPicker, ThemePicker } from '@/features/me/pickers';
 import { useItemName } from '@/features/wardrobe/visuals';
@@ -44,6 +45,10 @@ export default function Me() {
         <T variant="title">{profile.nickname}</T>
         {!profile.useSelfie && <Button kind="secondary" label={editAvatar ? t('common.done') : t('me.editAvatar')} onPress={() => setEditAvatar(!editAvatar)} />}
       </Card>
+
+      <Section title={t('diary.title')}>
+        <DiaryList />
+      </Section>
 
       <Section title={t('me.learnedTitle')}>
         <Card alt>
