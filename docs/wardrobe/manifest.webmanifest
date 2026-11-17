@@ -1,0 +1,29 @@
+{
+  "name": "Wardrobe Buddy",
+  "short_name": "Wardrobe",
+  "description": "What to wear today, from your own clothes. Free, no ads, everything stays on your device.",
+  "start_url": "/Ludo_Mani/wardrobe/",
+  "scope": "/Ludo_Mani/wardrobe/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F8F4FF",
+  "theme_color": "#6A3FC2",
+  "icons": [
+    {
+      "src": "/Ludo_Mani/wardrobe/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/Ludo_Mani/wardrobe/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/Ludo_Mani/wardrobe/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

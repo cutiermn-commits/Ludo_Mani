@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Platform, Switch, View } from 'react-native';
+import { Switch, View } from 'react-native';
 
 import {
   CATEGORIES,
@@ -121,7 +121,7 @@ export default function ItemEditor() {
         <PhotoStatus action={action} />
         {action.state !== 'intro' && action.state !== 'working' && (
           <Row wrap>
-            {Platform.OS !== 'web' && <Chip icon="📷" label={t('photo.take')} onPress={() => action.withCameraIntro(() => void addPhoto('camera'))} />}
+            <Chip icon="📷" label={t('photo.take')} onPress={() => action.withCameraIntro(() => void addPhoto('camera'))} />
             <Chip icon="🖼️" label={t('photo.choose')} onPress={() => void addPhoto('library')} />
             {item.photoUri && <Chip icon="✖️" label={t('photo.remove')} onPress={() => set({ photoUri: undefined })} />}
           </Row>

@@ -46,7 +46,8 @@
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:engine": "jest src/engine --coverage",
-    "ci": "npm run typecheck && npm run lint && jest --coverage"
+    "ci": "npm run typecheck && npm run lint && jest --coverage",
+    "build:web": "node scripts/build-web.mjs"
   },
   "private": true,
   "jest": {

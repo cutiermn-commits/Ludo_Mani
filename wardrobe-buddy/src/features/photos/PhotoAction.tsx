@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { ActivityIndicator } from 'react-native';
+import { ActivityIndicator, Platform } from 'react-native';
 
 import { useApp } from '@/features/app/AppState';
 import type { Picked, PickResult } from '@/services/photos/pipeline';
@@ -34,7 +34,9 @@ export function usePhotoAction() {
 
   /** Runs `go` straight away if the camera was explained before, otherwise explains first. */
   function withCameraIntro(go: () => void) {
-    if (profile?.cameraIntroSeen || introSeenHere) return go();
+    // Web: the browser opens the camera through a file input with `capture`; no permission
+    // prompt is shown (expo-image-picker web source, SDK 58), so there is nothing to explain.
+    if (Platform.OS === 'web' || profile?.cameraIntroSeen || introSeenHere) return go();
     pending.current = go;
     setState('intro');
   }

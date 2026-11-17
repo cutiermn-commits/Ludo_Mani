@@ -1,4 +1,4 @@
-import { Image, Platform, View } from 'react-native';
+import { Image, View } from 'react-native';
 
 import { useApp } from '@/features/app/AppState';
 import { PhotoStatus, usePhotoAction } from '@/features/photos/PhotoAction';
@@ -66,7 +66,7 @@ export function SelfieCard({ value, onChange }: { value?: string; onChange: (uri
       <PhotoStatus action={action} />
       {action.state !== 'intro' && action.state !== 'working' && (
         <Row wrap>
-          {Platform.OS !== 'web' && <Chip icon="🤳" label={t('selfie.take')} onPress={() => action.withCameraIntro(() => void add('camera'))} />}
+          <Chip icon="🤳" label={t('selfie.take')} onPress={() => action.withCameraIntro(() => void add('camera'))} />
           <Chip icon="🖼️" label={t('photo.choose')} onPress={() => void add('library')} />
           {value && <Chip icon="🌫️" label={t('selfie.blurAll')} onPress={() => void blurAll()} />}
           {value && <Chip icon="✖️" label={t('photo.remove')} onPress={() => void replace(undefined)} />}
