@@ -1,0 +1,81 @@
+{
+  "_comment": "Every runtime dependency must be listed here after a privacy check (CLAUDE.md non-negotiable 7, DECISIONS D-024). Checked 2026-11-17: source grep of each package's build output for fetch/XMLHttpRequest/WebSocket plus README review. 'network' = does the package make network calls at runtime in the shipped app.",
+  "dependencies": {
+    "expo": {
+      "network": "none in the app bundle for our usage (no expo-updates, no expo-insights installed)",
+      "why": "framework (D-002)"
+    },
+    "expo-constants": {
+      "network": "none",
+      "why": "required by expo-router"
+    },
+    "expo-font": {
+      "network": "none (loads bundled fonts only)",
+      "why": "template default, used by expo-router/vector icons"
+    },
+    "expo-linking": {
+      "network": "none",
+      "why": "required by expo-router; we never open external links without the parental gate"
+    },
+    "expo-localization": {
+      "network": "none (grep: no fetch/XHR in build/)",
+      "why": "device language detection (D-014)"
+    },
+    "expo-router": {
+      "network": "none",
+      "why": "navigation (AGENTS.md)"
+    },
+    "expo-splash-screen": {
+      "network": "none",
+      "why": "splash"
+    },
+    "expo-sqlite": {
+      "network": "none (grep: no fetch/XHR in build/; URLs in source are doc comments)",
+      "why": "on-device storage on iOS/Android (D-023)"
+    },
+    "expo-status-bar": {
+      "network": "none",
+      "why": "status bar"
+    },
+    "expo-system-ui": {
+      "network": "none",
+      "why": "root background colour per theme"
+    },
+    "react": {
+      "network": "none",
+      "why": "UI"
+    },
+    "react-dom": {
+      "network": "none",
+      "why": "web"
+    },
+    "react-native": {
+      "network": "only through our safeFetch wrapper",
+      "why": "UI"
+    },
+    "react-native-gesture-handler": {
+      "network": "none",
+      "why": "navigation gestures"
+    },
+    "react-native-reanimated": {
+      "network": "none",
+      "why": "animations (Phase 7)"
+    },
+    "react-native-safe-area-context": {
+      "network": "none",
+      "why": "layout"
+    },
+    "react-native-screens": {
+      "network": "none",
+      "why": "navigation"
+    },
+    "react-native-web": {
+      "network": "none",
+      "why": "web target"
+    },
+    "react-native-worklets": {
+      "network": "none",
+      "why": "peer of reanimated"
+    }
+  }
+}
