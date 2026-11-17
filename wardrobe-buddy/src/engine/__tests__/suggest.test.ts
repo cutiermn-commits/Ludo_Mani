@@ -202,3 +202,21 @@ describe('suggest: ranking', () => {
     expect(kinds).toContain('taste');
   });
 });
+
+describe('Phase 5 exit: suggestion in < 2 s with a cached forecast', () => {
+  it('a big wardrobe (120 items) gets today + a 7-day plan well under the budget', () => {
+    const cats = ['top', 'bottom', 'dress', 'outerwear', 'shoes'] as const;
+    const items = Array.from({ length: 120 }, (_, k) =>
+      item({ id: `i${k}`, category: cats[k % 5], warmth: ((k % 5) + 1) as 1, waterproof: k % 7 === 0, favorite: k % 9 === 0 }),
+    );
+    const { planWeek } = jest.requireActual('../week') as typeof import('../week');
+    const t0 = performance.now();
+    suggest(input({ items, weather: day(6, { rainChanceMaxPct: 60 }), mood: 'cozy' }));
+    planWeek(
+      ['2026-11-17', '2026-11-18', '2026-11-19', '2026-11-20', '2026-11-21', '2026-11-22', '2026-11-23'].map((date, i) => day(4 + i * 2, { date })),
+      input({ items }),
+    );
+    // Budget is 2000 ms on a mid-range phone; Node is much faster, so a tenth of it is a safe margin here.
+    expect(performance.now() - t0).toBeLessThan(200);
+  });
+});

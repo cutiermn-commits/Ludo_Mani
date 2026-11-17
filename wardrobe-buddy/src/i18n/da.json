@@ -296,6 +296,7 @@
   "week.noCity": "En voksen kan tilføje din by under indstillinger ⚙️ for at planlægge ugen.",
   "week.noForecast": "Jeg skal bruge vejrudsigten for at planlægge ugen. Prøv igen, når du er online.",
   "week.subtitle": "Jeg blander, så du ikke har det samme på to dage i træk.",
+  "week.tapHint": "Viser hvorfor og hvad du skal huske",
   "week.title": "Denne uge",
   "week.today": "I dag",
   "why.band.cold": "varmt og hyggeligt til {temp}",

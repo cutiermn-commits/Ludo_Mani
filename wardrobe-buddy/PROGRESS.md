@@ -10,7 +10,7 @@ _Last updated: 2026-11-17 (Claude Code)_
 | 2. Weather | ✅ Done (forecast fields NOT VERIFIED live) | City search, forecast, 1 h cache, stale/offline fallback, "What's it like outside?", attribution, no identifiers (tested) |
 | 3. Wardrobe | 🟢 Built (device test pending) | Grid, filters, ♥, laundry toggle, add/edit/delete; **photos** from camera or library, resized on the device, metadata (EXIF/GPS) stripped, stored in the sandbox, colours suggested from the photo (D-042). Exit criterion "add 20 items smoothly on a mid-range Android" needs a real phone |
 | 4. Me | ✅ Done (device test pending) | Onboarding (6 steps), parental gate (screen test: can't be skipped, 30 s pause after 3 misses), profile, avatar maker, theme, language, likes, **optional selfie, always blurred above the shoulders** (D-045; checked in a web test). Front-camera behaviour on Android depends on the phone's camera app (Expo docs) |
-| 5. Today + Week | 🟡 First version | Weather card, mood picker, avatar wearing the outfit, swap tabs, "Why this?", don't-forget chips, week view |
+| 5. Today + Week | ✅ Done | Weather card, mood picker, avatar wearing the outfit, swap tabs, "Why this?", don't-forget chips; Week days expand to show why + what to remember. Exit test: 120 items, today + 7-day plan well under 2 s |
 | 6. Rating + learning | 🟡 First version | Stars + reason chips, "I wore this", learning shown in Me, reset in the parent area. Diary photo not built |
 | 7. Polish | ⬜ Not started | |
 | 8. Release prep | ⬜ Not started | |
