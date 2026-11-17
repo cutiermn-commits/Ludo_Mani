@@ -28,7 +28,7 @@ _Last updated: 2026-11-17 (Claude Code)_
 
 ## Blocked / needs the owner
 - **D-015** where the code should live (own repo recommended). The `Ludo_Mani` repository is public, so personal details about the first user were removed from the docs and the sketch photo is kept out of git (`docs/sketch.jpeg` is git-ignored); see D-041.
-- **D-044** Android package name + Play account type (personal accounts need a 14-day closed test with 12 testers).
+- First Android build (needs your Expo login, see Next).
 - **New repository** (D-015): create an empty private repo and tell Claude its name; the project moves with its history.
 - Existing: D-004 store category, D-008 Open-Meteo confirmation email, D-009 legal review, D-010 developer accounts, D-011 native-speaker copy review.
 
@@ -42,7 +42,7 @@ _Last updated: 2026-11-17 (Claude Code)_
 - App icon and splash are still the Expo template images. The co-designer's sketch (pink/blue girl with clothes) needs original art.
 
 ## Next (priority: Google Play → web → iOS, D-043)
-1. Android: package name (D-044) → `eas build --profile preview -p android` → install the APK on her phone and run the Phase 3 exit test (20 items).
+1. Android (package `dk.mani.wardrobebuddy`, D-044): `npx eas-cli@latest init` once, then `npx eas-cli@latest build -p android --profile preview` → install the APK on her phone and run the Phase 3 exit test (20 items).
 2. Phase 4: selfie + blur (D-033); Phase 6: diary photo.
 3. Play paperwork drafts: Families target audience, Data safety form, privacy policy (kid + parent, DA + EN), start the closed test early (14 days).
 4. Web hosting decision, then iOS last.
