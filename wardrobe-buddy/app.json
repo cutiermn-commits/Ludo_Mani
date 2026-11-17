@@ -30,7 +30,8 @@
         "android.permission.SYSTEM_ALERT_WINDOW"
       ],
       "predictiveBackGestureEnabled": false,
-      "package": "dk.mani.wardrobebuddy"
+      "package": "dk.mani.wardrobebuddy",
+      "allowBackup": false
     },
     "web": {
       "output": "single",
@@ -53,8 +54,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Wardrobe Buddy uses your photos only to add pictures of your clothes. They stay on this device.",
-          "cameraPermission": "Wardrobe Buddy uses the camera only to take pictures of your clothes. They stay on this device.",
+          "photosPermission": "Wardrobe Buddy uses your photos only to add pictures of your clothes or a photo of yourself (your face is blurred). They stay on this device.",
+          "cameraPermission": "Wardrobe Buddy uses the camera only to take pictures of your clothes or a selfie (your face is blurred). They stay on this device.",
           "microphonePermission": false
         }
       ]

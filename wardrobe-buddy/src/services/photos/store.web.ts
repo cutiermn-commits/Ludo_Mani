@@ -15,4 +15,8 @@ export const photoStore: PhotoStore = {
     return `data:${mime};base64,${bytesToBase64(bytes)}`;
   },
   async discard() {},
+  async purgeCaches() {},
+  async listSaved() {
+    return []; // web photos live inside the items themselves
+  },
 };

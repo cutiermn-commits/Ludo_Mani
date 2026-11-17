@@ -88,20 +88,27 @@ export function AppProvider({
 
   useEffect(() => {
     let alive = true;
-    repo.load().then((data) => {
+    repo.load().then(async (data) => {
       if (!alive) return;
       setState((s) => ({ ...s, ...data, ready: true, locale: data.profile?.locale ?? s.locale }));
+      // Start-up sweep: image caches (may hold unblurred or EXIF copies if the app was killed
+      // mid-processing) and saved photos nothing refers to (abandoned edits or set-up).
+      await photos.purgeCaches().catch(() => undefined);
+      const used = new Set([...data.items.map((i) => i.photoUri), data.profile?.selfieUri].filter(Boolean));
+      for (const uri of await photos.listSaved().catch(() => [] as string[])) if (!used.has(uri)) await photos.remove(uri).catch(() => undefined);
     });
     return () => {
       alive = false;
     };
-  }, [repo]);
+  }, [repo, photos]);
 
+  // Storage first, then the screen: if saving fails (e.g. browser storage full) the caller gets
+  // the error and the app doesn't show data that isn't really saved.
   const patch = useCallback(
     async <K extends keyof AppData>(key: K, value: AppData[K]) => {
+      await repo.save(key, value);
       ref.current = { ...ref.current, [key]: value };
       setState((s) => ({ ...s, [key]: value }));
-      await repo.save(key, value);
     },
     [repo],
   );
@@ -152,15 +159,16 @@ export function AppProvider({
       upsertItem: async (item) => {
         const items = ref.current.items;
         const old = items.find((i) => i.id === item.id);
-        if (old?.photoUri && old.photoUri !== item.photoUri) await photos.remove(old.photoUri);
         const next = items.some((i) => i.id === item.id) ? items.map((i) => (i.id === item.id ? item : i)) : [...items, item];
         await patch('items', next);
+        // Only after the item is saved: delete the photo it no longer uses.
+        if (old?.photoUri && old.photoUri !== item.photoUri) await photos.remove(old.photoUri);
       },
       deleteItem: async (id) => {
         const gone = ref.current.items.find((i) => i.id === id);
-        if (gone?.photoUri) await photos.remove(gone.photoUri);
         const next = ref.current.items.filter((i) => i.id !== id);
         await patch('items', next);
+        if (gone?.photoUri) await photos.remove(gone.photoUri);
         await patch('learning', pruneLearning(ref.current.learning, new Set(next.map((i) => i.id))));
       },
       saveOutfit: async (o) => {
@@ -182,6 +190,7 @@ export function AppProvider({
         ref.current = { ...ref.current, ...emptyAppData() };
         await repo.deleteAll();
         await photos.removeAll();
+        await photos.purgeCaches();
         setState((s) => ({ ...s, ...emptyAppData(), mood: undefined, manualToday: null, weatherStatus: 'idle' }));
       },
       exportJson: () => repo.exportJson(),

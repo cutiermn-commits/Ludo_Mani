@@ -82,6 +82,43 @@ describe('decodePng', () => {
   it('rejects non-PNG data', () => {
     expect(() => decodePng(new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9]))).toThrow('signature');
   });
+  it('decodes 16-bit RGB by keeping the high byte', () => {
+    const w = 3;
+    const rows = Buffer.alloc(2 * (1 + w * 6));
+    for (let y = 0; y < 2; y++) for (let x = 0; x < w; x++) rows.set([200, 1, 100, 2, 50, 3], y * (1 + w * 6) + 1 + x * 6);
+    const ihdr = Buffer.alloc(13);
+    ihdr.writeUInt32BE(w, 0);
+    ihdr.writeUInt32BE(2, 4);
+    ihdr[8] = 16;
+    ihdr[9] = 2;
+    const chunk = (t: string, d: Buffer) => {
+      const l = Buffer.alloc(4);
+      l.writeUInt32BE(d.length);
+      const td = Buffer.concat([Buffer.from(t), d]);
+      const c = Buffer.alloc(4);
+      c.writeUInt32BE(crc32(td) >>> 0);
+      return Buffer.concat([l, td, c]);
+    };
+    const png = Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', deflateSync(rows)), chunk('IEND', Buffer.alloc(0))]);
+    expect(Array.from(decodePng(new Uint8Array(png)).data.subarray(0, 4))).toEqual([200, 100, 50, 255]);
+  });
+  it('fuzz: random or truncated input always throws an Error and never hangs', () => {
+    const good = makePng(16, 16, pixel, { filter: 4 });
+    let seed = 42;
+    const rnd = () => ((seed = (seed * 1103515245 + 12345) >>> 0) / 2 ** 32);
+    for (let k = 0; k < 300; k++) {
+      const bad = Uint8Array.from(good);
+      if (k % 3 === 0) {
+        for (let j = 0; j < 5; j++) bad[33 + Math.floor(rnd() * (bad.length - 45))] = Math.floor(rnd() * 256);
+      }
+      const input = k % 3 === 1 ? bad.subarray(0, Math.floor(rnd() * bad.length)) : bad;
+      try {
+        decodePng(k % 3 === 2 ? new Uint8Array([...good.subarray(0, 41), ...Array.from({ length: 50 }, () => Math.floor(rnd() * 256))]) : input);
+      } catch (e) {
+        expect(e).toBeInstanceOf(Error);
+      }
+    }
+  });
 });
 
 describe('colour detection', () => {
@@ -122,16 +159,21 @@ describe('colour detection', () => {
 describe('JPEG metadata stripping', () => {
   const seg = (marker: number, payload: number[]) => [0xff, marker, 0, payload.length + 2, ...payload];
   const gps = [...Buffer.from('Exif\0\0GPS-55.67N')];
-  const jpeg = new Uint8Array([0xff, 0xd8, ...seg(0xe0, [...Buffer.from('JFIF\0')]), ...seg(0xe1, gps), ...seg(0xed, [1, 2, 3]), ...seg(0xdb, [9, 9]), 0xff, 0xda, 0, 4, 7, 7, 0x12, 0x34, 0xff, 0xd9]);
+  const jpeg = new Uint8Array([
+    0xff, 0xd8, ...seg(0xe0, [...Buffer.from('JFIF\0')]), ...seg(0xe1, gps), ...seg(0xe2, [...Buffer.from('MPF\0')]), ...seg(0xed, [1, 2, 3]),
+    ...seg(0xfe, [...Buffer.from('made by TestPhone')]), ...seg(0xdb, [9, 9]), 0xff, 0xda, 0, 4, 7, 7, 0x12, 0x34, 0xff, 0xd9,
+  ]);
 
-  it('removes EXIF/XMP and IPTC but keeps the image data', () => {
+  it('removes EXIF/XMP, MPF, IPTC and comments but keeps JFIF and the image data', () => {
     expect(hasJpegMetadata(jpeg)).toBe(true);
     const out = stripJpegMetadata(jpeg);
     expect(hasJpegMetadata(out)).toBe(false);
     expect(Buffer.from(out).includes(Buffer.from('GPS'))).toBe(false);
     expect(Buffer.from(out).includes(Buffer.from('JFIF'))).toBe(true);
     expect(Array.from(out.slice(-10))).toEqual([0xff, 0xda, 0, 4, 7, 7, 0x12, 0x34, 0xff, 0xd9]); // scan data untouched
-    expect(out.length).toBe(jpeg.length - (gps.length + 4) - (3 + 4));
+    expect(Buffer.from(out).includes(Buffer.from('MPF'))).toBe(false);
+    expect(Buffer.from(out).includes(Buffer.from('TestPhone'))).toBe(false);
+    expect(out.length).toBe(jpeg.length - (gps.length + 4) - (4 + 4) - (3 + 4) - (17 + 4));
   });
   it('rejects non-JPEG data', () => {
     expect(() => stripJpegMetadata(new Uint8Array([1, 2, 3]))).toThrow();

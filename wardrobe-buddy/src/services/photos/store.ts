@@ -30,6 +30,21 @@ export const photoStore: PhotoStore = {
     file.write(bytes);
     return file.uri;
   },
+  async purgeCaches() {
+    // Folder names from the libraries' source (SDK 58): Android picker + manipulator use
+    // cache/ImagePicker and cache/ImageManipulator; iOS picker uses Caches/ImagePicker.
+    for (const name of ['ImagePicker', 'ImageManipulator']) {
+      const dir = new Directory(Paths.cache, name);
+      if (dir.exists) dir.delete();
+    }
+    for (const entry of new Directory(Paths.cache).list()) {
+      if (entry instanceof File && entry.name.startsWith('wb-tmp-')) entry.delete();
+    }
+  },
+  async listSaved() {
+    const dir = photosDir();
+    return dir.exists ? dir.list().filter((e): e is File => e instanceof File).map((f) => f.uri) : [];
+  },
   async discard(uri) {
     // Only the cache folder: picker copies and our own temp files live there.
     if (!uri.startsWith(Paths.cache.uri)) return;

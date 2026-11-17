@@ -1,7 +1,8 @@
 /**
- * Minimal PNG decoder (8-bit RGB/RGBA, non-interlaced) with a small inflate (RFC 1951).
- * Used only to read the tiny downscaled thumbnail for colour detection, so no
- * image library dependency is needed (CLAUDE.md non-negotiable 7).
+ * Minimal PNG decoder (8/16-bit RGB/RGBA, non-interlaced) with a small inflate (RFC 1951).
+ * Reads PNGs produced by our own image manipulator: the 24×24 colour thumbnail and the
+ * ~360 px selfie before blurring. No image library dependency (CLAUDE.md non-negotiable 7).
+ * Malformed input throws an Error (fuzz-tested); output is capped against decompression bombs.
  */
 
 class BitReader {
@@ -39,6 +40,12 @@ function buildHuffman(lengths: ArrayLike<number>): Huffman {
   counts[0] = 0;
   const offs = new Uint16Array(16);
   for (let i = 1; i < 16; i++) offs[i] = offs[i - 1] + counts[i - 1];
+  // Reject over-subscribed code sets (more codes than the bit lengths allow).
+  let left = 1;
+  for (let len = 1; len < 16; len++) {
+    left = (left << 1) - counts[len];
+    if (left < 0) throw new Error('inflate: over-subscribed code');
+  }
   const symbols = new Uint16Array(lengths.length);
   for (let i = 0; i < lengths.length; i++) if (lengths[i]) symbols[offs[lengths[i]]++] = i;
   return { counts, symbols };
@@ -98,8 +105,11 @@ export function inflateRaw(data: Uint8Array, maxOut = 4 * 1024 * 1024): Uint8Arr
     const type = br.read(2);
     if (type === 0) {
       br.align();
+      if (br.pos + 4 > data.length) throw new Error('inflate: bad stored block');
       const len = data[br.pos] | (data[br.pos + 1] << 8);
-      br.pos += 4; // LEN + NLEN
+      const nlen = data[br.pos + 2] | (data[br.pos + 3] << 8);
+      if ((len ^ 0xffff) !== nlen) throw new Error('inflate: bad stored length');
+      br.pos += 4;
       if (br.pos + len > data.length) throw new Error('inflate: bad stored block');
       for (let i = 0; i < len; i++) push(data[br.pos + i]);
       br.pos += len;
@@ -171,6 +181,7 @@ export function decodePng(bytes: Uint8Array): RGBAImage {
   let width = 0;
   let height = 0;
   let colorType = -1;
+  let depth = 8;
   const idat: Uint8Array[] = [];
   while (pos + 8 <= bytes.length) {
     const len = u32(pos);
@@ -179,9 +190,9 @@ export function decodePng(bytes: Uint8Array): RGBAImage {
     if (type === 'IHDR') {
       width = u32(pos + 8);
       height = u32(pos + 12);
-      const depth = body[8];
+      depth = body[8];
       colorType = body[9];
-      if (depth !== 8 || (colorType !== 2 && colorType !== 6) || body[12] !== 0) throw new Error('png: unsupported format');
+      if ((depth !== 8 && depth !== 16) || (colorType !== 2 && colorType !== 6) || body[12] !== 0) throw new Error('png: unsupported format');
       if (width * height > 1_000_000) throw new Error('png: too large');
     } else if (type === 'IDAT') idat.push(body);
     else if (type === 'IEND') break;
@@ -194,8 +205,9 @@ export function decodePng(bytes: Uint8Array): RGBAImage {
     z.set(c, off);
     off += c.length;
   }
-  const raw = inflateRaw(z.subarray(2)); // skip 2-byte zlib header
-  const bpp = colorType === 6 ? 4 : 3;
+  if (z.length < 2 || (z[0] & 0x0f) !== 8 || ((z[0] << 8) | z[1]) % 31 !== 0) throw new Error('png: bad zlib header');
+  const raw = inflateRaw(z.subarray(2));
+  const bpp = (colorType === 6 ? 4 : 3) * (depth / 8);
   const stride = width * bpp;
   if (raw.length < height * (stride + 1)) throw new Error('png: short data');
   const px = new Uint8Array(height * stride);
@@ -235,13 +247,13 @@ export function decodePng(bytes: Uint8Array): RGBAImage {
       px[dst + x] = p & 0xff;
     }
   }
-  if (bpp === 4) return { width, height, data: px };
+  const channels = colorType === 6 ? 4 : 3;
+  const step = depth / 8; // 16-bit: keep the high byte
+  if (channels === 4 && step === 1) return { width, height, data: px };
   const rgba = new Uint8Array(width * height * 4);
-  for (let i = 0, j = 0; i < px.length; i += 3, j += 4) {
-    rgba[j] = px[i];
-    rgba[j + 1] = px[i + 1];
-    rgba[j + 2] = px[i + 2];
-    rgba[j + 3] = 255;
+  for (let p = 0; p < width * height; p++) {
+    for (let c = 0; c < channels; c++) rgba[p * 4 + c] = px[(p * channels + c) * step];
+    if (channels === 3) rgba[p * 4 + 3] = 255;
   }
   return { width, height, data: rgba };
 }

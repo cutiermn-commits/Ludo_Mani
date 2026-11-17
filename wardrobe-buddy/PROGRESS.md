@@ -110,3 +110,36 @@ These were run as internal subagent reviews by the same AI system that wrote the
 | Context re-renders everything | ⏳ Accepted; profile when photos arrive |
 
 **Verification at commit:** 625 unit tests pass; engine coverage 98.8 % statements / 95.3 % branches; `tsc` and `expo lint` clean. The web export was driven end-to-end in headless Chromium (consent → gate → set-up → 7 items → Today → rate → Week → Me → language switch → parent gate → parent area). Weather was mocked, there were no console errors, and the only hosts contacted were localhost and the two Open-Meteo hosts.
+
+## Phase 3–4 reviews (2026-11-17)
+Internal subagent reviews by the same AI system; not an independent human audit.
+
+**privacy-safety-auditor**: 1 blocker, 3 major, 5 minor.
+| Finding | Status |
+|---|---|
+| **Blocker:** Android crop step leaves an unblurred selfie copy in `cache/ImagePicker` | ✅ Whole picker/manipulator cache folders purged after every photo, on error and at start-up (verified in library source; device check pending) |
+| Android Auto Backup would copy data to Google Drive | ✅ `allowBackup: false` (D-046) |
+| Fixed blur area can miss a low face; other people in library photos | ✅ "Blur the whole photo" button + "Only photos of yourself" copy; how recognisable a blurred face is: NOT VERIFIED |
+| iOS permission texts didn't mention selfies | ✅ Updated |
+| Selfie camera had no explanation step | ✅ Shared intro (`usePhotoAction`) for clothes and selfies |
+| Clothing photo error path left cache files | ✅ `finally` cleanup + test |
+| Orphan photo files | ✅ Start-up sweep (D-048) |
+| JPEG strip kept APP2/COM | ✅ All APP1–15 and COM removed |
+| Export: native has no photos, web includes them | 📝 Parent sees a note; zip export is a Phase 8 item |
+
+**architecture-reviewer**
+| Finding | Status |
+|---|---|
+| High: saving could delete the just-saved photo (unmount race) | ✅ Save marks itself before navigating; drafts tracked in refs |
+| High: orphans incl. unblurred temp after a crash | ✅ Start-up sweep + cache purge |
+| Old photo deleted before new data saved | ✅ Save first (D-048) |
+| Blur blocks the JS thread | ✅ Grid + bilinear, ~5 ms in Node (Hermes NOT VERIFIED) |
+| Native image refs never released; 2048 px intermediate | ✅ `release()`; resize in one step from picker size |
+| 16-bit PNGs rejected | ✅ Supported + test |
+| Web storage quota errors swallowed | ✅ Storage first, error shown; smaller web photos |
+| Home-made inflate unchecked | ✅ Header/NLEN/over-subscription checks + fuzz test (D-047) |
+| Duplicated pick/resize code and photo state machine | ✅ `pipeline.ts` + `usePhotoAction` |
+| Privacy claim untested | ✅ `photo-pipeline.test.ts` (blurred, no metadata, all temps discarded, also on failure) |
+| Open handle in tests (gate timer) | ✅ Timer cleared on unmount |
+
+**Verification:** 709 unit tests; typecheck and lint clean; web end-to-end: clothing photo → colours `red, white`, no EXIF; selfie → face-area detail 0.0, outfit 22.1, no EXIF/maker tag.

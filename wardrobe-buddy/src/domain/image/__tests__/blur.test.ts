@@ -71,4 +71,15 @@ describe('blurTop (selfie privacy blur)', () => {
   it('works on tiny images', () => {
     expect(() => blurTop(checker(3, 3, 1))).not.toThrow();
   });
+  it('"blur the whole photo" leaves no detail anywhere', () => {
+    const all = blurTop(img, { blurShare: 1 });
+    expect(detail(all, 0, 160)).toBeLessThan(5);
+  });
+  it('is fast enough for a 360×480 selfie', () => {
+    const big = checker(360, 480);
+    const t0 = performance.now();
+    blurTop(big);
+    // ~5 ms in plain Node; coverage instrumentation inflates it. Guards against an accidental O(n²).
+    expect(performance.now() - t0).toBeLessThan(1000);
+  });
 });

@@ -7,7 +7,7 @@ import { AppProvider } from '@/features/app/AppState';
 import Parent from '../../../app/parent';
 
 jest.mock('@/data/kv', () => ({ deviceStorage: {} }));
-jest.mock('@/services/photos/store', () => ({ photoStore: { save: jest.fn(), remove: jest.fn(), removeAll: jest.fn(), temp: jest.fn(), discard: jest.fn() } }));
+jest.mock('@/services/photos/store', () => ({ photoStore: { save: jest.fn(), remove: jest.fn(), removeAll: jest.fn(), temp: jest.fn(), discard: jest.fn(), purgeCaches: jest.fn(async () => undefined), listSaved: jest.fn(async () => []) } }));
 jest.mock('expo-router', () => ({ router: { replace: jest.fn(), back: jest.fn() } }));
 // Fixed question: 13 × 12 = 156 (see gate.test in repository.test.ts).
 jest.mock('../gate', () => ({ ...jest.requireActual('../gate'), makeGateQuestion: () => ({ a: 13, b: 12, answer: 156 }) }));

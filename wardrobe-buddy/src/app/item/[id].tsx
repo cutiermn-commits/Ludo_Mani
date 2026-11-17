@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Platform, Switch, View } from 'react-native';
+import { Platform, Switch, View } from 'react-native';
 
 import {
   CATEGORIES,
@@ -17,7 +17,8 @@ import { useApp } from '@/features/app/AppState';
 import { newId } from '@/features/app/dates';
 import { ColorPicker } from '@/features/me/pickers';
 import { ItemTile, itemIcon } from '@/features/wardrobe/visuals';
-import { pickFromLibrary, processPhoto, takePhoto, type PickResult } from '@/services/photos/capture';
+import { PhotoStatus, usePhotoAction } from '@/features/photos/PhotoAction';
+import { pickClothes, processPhoto } from '@/services/photos/capture';
 import type { TKey } from '@/i18n';
 import { Button, Card, Chip, Row, Screen, T } from '@/ui/components';
 import { space } from '@/ui/theme';
@@ -32,10 +33,13 @@ const DEFAULT_WARMTH: Partial<Record<Subcategory, Warmth>> = {
 /** Add or edit a clothing item, optionally with a photo (Phase 3; camera permission approved by the owner 2026-11-17, D-042). */
 export default function ItemEditor() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { t, items, upsertItem, deleteItem, photos, profile, updateProfile } = useApp();
-  const [photoState, setPhotoState] = useState<'idle' | 'intro' | 'working' | 'denied' | 'deniedForever' | 'failed'>('idle');
-  /** Photo replaced or added in this session but not saved yet (removed again on cancel). */
-  const [draftPhoto, setDraftPhoto] = useState<string | null>(null);
+  const { t, items, upsertItem, deleteItem, photos } = useApp();
+  const action = usePhotoAction();
+  /** Photos made during this edit. On save all but the kept one are deleted; on leaving without saving, all are. */
+  const drafts = useRef<string[]>([]);
+  const saved = useRef(false);
+  const [guessed, setGuessed] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
   const c = useTheme();
   const existing = items.find((i) => i.id === id);
   const [item, setItem] = useState<ClothingItem>(
@@ -63,43 +67,38 @@ export default function ItemEditor() {
   };
 
   const save = async () => {
-    await upsertItem(item);
-    setDraftPhoto(null);
+    // Mark as saved before navigating, so the unmount cleanup can never delete the kept photo.
+    saved.current = true;
+    try {
+      await upsertItem(item); // replaces (and then deletes) the item's previous photo
+    } catch {
+      saved.current = false;
+      setSaveFailed(true);
+      return;
+    }
+    const discard = drafts.current.filter((u) => u !== item.photoUri);
+    drafts.current = [];
+    for (const u of discard) await photos.remove(u);
     router.back();
   };
 
-  // Leaving without saving: drop a photo that was taken for this unsaved edit.
-  const draftPhotoRef = useRef<string | null>(null);
-  useEffect(() => {
-    draftPhotoRef.current = draftPhoto;
-  }, [draftPhoto]);
   useEffect(
     () => () => {
-      if (draftPhotoRef.current) void photos.remove(draftPhotoRef.current);
+      if (!saved.current) for (const u of drafts.current) void photos.remove(u);
     },
     [photos],
   );
 
-  const applyPhoto = async (pick: () => Promise<PickResult>) => {
-    setPhotoState('working');
-    try {
-      const res = await pick();
-      if (res.kind === 'denied') return setPhotoState(res.canAskAgain ? 'denied' : 'deniedForever');
-      if (res.kind === 'canceled') return setPhotoState('idle');
-      const { photoUri, colors } = await processPhoto(res.uri, photos);
-      if (draftPhoto) await photos.remove(draftPhoto);
-      setDraftPhoto(photoUri);
-      setItem((x) => ({ ...x, photoUri, colors: x.colors.length ? x.colors : colors }));
-      setPhotoState('idle');
-    } catch {
-      setPhotoState('failed');
-    }
-  };
-
-  const camera = () => {
-    if (!profile?.cameraIntroSeen) return setPhotoState('intro');
-    void applyPhoto(takePhoto);
-  };
+  const addPhoto = (source: 'camera' | 'library') =>
+    action.run(
+      () => pickClothes(source),
+      (p) => processPhoto(p, photos),
+      ({ photoUri, colors }) => {
+        drafts.current.push(photoUri);
+        setGuessed(colors.length > 0);
+        setItem((x) => ({ ...x, photoUri, colors: x.colors.length ? x.colors : colors }));
+      },
+    );
 
   const toggle = (label: string, value: boolean, onChange: (v: boolean) => void) => (
     <Row style={{ justifyContent: 'space-between', minHeight: 44 }}>
@@ -119,33 +118,15 @@ export default function ItemEditor() {
         <T variant="small" muted>
           {t('photo.clothesOnly')}
         </T>
-        {photoState === 'intro' ? (
-          <Card alt>
-            <T variant="heading">{t('photo.introTitle')}</T>
-            <T>{t('photo.introBody')}</T>
-            <Button
-              icon="📷"
-              label={t('photo.introOk')}
-              onPress={async () => {
-                await updateProfile({ cameraIntroSeen: true });
-                void applyPhoto(takePhoto);
-              }}
-            />
-            <Button kind="secondary" label={t('common.cancel')} onPress={() => setPhotoState('idle')} />
-          </Card>
-        ) : photoState === 'working' ? (
-          <ActivityIndicator color={c.primary} accessibilityLabel={t('photo.working')} />
-        ) : (
+        <PhotoStatus action={action} />
+        {action.state !== 'intro' && action.state !== 'working' && (
           <Row wrap>
-            {Platform.OS !== 'web' && <Chip icon="📷" label={t('photo.take')} onPress={camera} />}
-            <Chip icon="🖼️" label={t('photo.choose')} onPress={() => void applyPhoto(pickFromLibrary)} />
+            {Platform.OS !== 'web' && <Chip icon="📷" label={t('photo.take')} onPress={() => action.withCameraIntro(() => void addPhoto('camera'))} />}
+            <Chip icon="🖼️" label={t('photo.choose')} onPress={() => void addPhoto('library')} />
             {item.photoUri && <Chip icon="✖️" label={t('photo.remove')} onPress={() => set({ photoUri: undefined })} />}
           </Row>
         )}
-        {photoState === 'denied' && <T muted>{t('photo.denied')}</T>}
-        {photoState === 'deniedForever' && <T muted>{t('photo.deniedForever')}</T>}
-        {photoState === 'failed' && <T muted>{t('photo.failed')}</T>}
-        {item.photoUri && item.colors.length > 0 && draftPhoto && (
+        {item.photoUri && guessed && (
           <T variant="small" muted>
             {t('photo.colorsGuessed')}
           </T>
@@ -212,6 +193,7 @@ export default function ItemEditor() {
       </Card>
 
       <Button label={t('common.save')} onPress={save} disabled={item.colors.length === 0} />
+      {saveFailed && <T muted>{t('item.saveFailed')}</T>}
       {item.colors.length === 0 && (
         <T variant="small" muted center>
           {t('item.needColor')}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { TextInput, View } from 'react-native';
 
 import { useApp } from '@/features/app/AppState';
@@ -16,6 +16,13 @@ export function ParentalGate({ onPass }: { onPass: () => void }) {
   const [value, setValue] = useState('');
   const [wrong, setWrong] = useState(0);
   const [locked, setLocked] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current);
+    },
+    [],
+  );
 
   const submit = () => {
     if (locked) return;
@@ -26,7 +33,8 @@ export function ParentalGate({ onPass }: { onPass: () => void }) {
     setQ(makeGateQuestion());
     if (tries % GATE_MAX_TRIES === 0) {
       setLocked(true);
-      setTimeout(() => setLocked(false), GATE_COOLDOWN_MS);
+      if (timer.current) clearTimeout(timer.current);
+      timer.current = setTimeout(() => setLocked(false), GATE_COOLDOWN_MS);
     }
   };
 

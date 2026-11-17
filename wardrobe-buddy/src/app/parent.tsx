@@ -67,6 +67,9 @@ export default function Parent() {
         <Card>
           <T>{t('parent.dataBody')}</T>
           <Button kind="secondary" label={t('parent.export')} onPress={doExport} />
+          <T variant="small" muted>
+            {t('parent.exportNote')}
+          </T>
           <Button
             kind="secondary"
             label={t('parent.resetLearning')}

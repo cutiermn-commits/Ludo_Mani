@@ -9,4 +9,11 @@ export interface PhotoStore {
   temp(bytes: Uint8Array, mime: 'image/png' | 'image/jpeg'): Promise<string>;
   /** Delete a temporary or picker-cache file. Never touches saved photos. */
   discard(uri: string): Promise<void>;
+  /**
+   * Empty the image picker's and manipulator's own cache folders and our temp files.
+   * Those can hold unblurred or EXIF-carrying copies (the Android crop step writes its own file).
+   */
+  purgeCaches(): Promise<void>;
+  /** URIs of all saved photos, to clean up ones no item or profile refers to. */
+  listSaved(): Promise<string[]>;
 }
