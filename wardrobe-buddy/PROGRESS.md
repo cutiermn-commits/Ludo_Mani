@@ -44,7 +44,7 @@ _Last updated: 2026-11-17 (Claude Code)_
 1. Android (package `dk.mani.wardrobebuddy`, D-044): `npx eas-cli@latest init` once, then `npx eas-cli@latest build -p android --profile preview` → install the APK on her phone and run the Phase 3 exit test (20 items).
 2. Phase 5 polish of Today/Week, then Phase 6: the diary photo (it reuses the selfie blur).
 3. Play paperwork drafts: Families target audience, Data safety form, privacy policy (kid + parent, DA + EN), start the closed test early (14 days).
-4. Web: merge to `ludo-app` to publish https://cutiermn-commits.github.io/Ludo_Mani/wardrobe/ (D-050); real-phone browser test; then iOS last.
+4. Web: owner creates the GitHub organisation + `wardrobe-buddy.github.io` repo (D-055) → Claude publishes `dist-site/` there → real-phone browser test; then iOS last.
 
 ## Review of the starter docs (kickoff step 2)
 | # | What | Suggested fix | Done? |
@@ -145,7 +145,7 @@ Internal subagent reviews by the same AI system; not an independent human audit.
 **Verification:** 709 unit tests; typecheck and lint clean; web end-to-end: clothing photo → colours `red, white`, no EXIF; selfie → face-area detail 0.0, outfit 22.1, no EXIF/maker tag.
 
 ## Browser version (2026-11-17)
-Mobile-first web build: `npm run build:web` → `docs/wardrobe` (GitHub Pages, D-050). It is installable to the home screen and opens offline. Tested on 3 emulated phones with no sideways scrolling, and deep links work. It goes live when the PR is merged into `ludo-app`.
+Mobile-first web build: `npm run build:web` → `dist-site/`, published on its own origin https://wardrobe-buddy.github.io/ (D-055). It is installable to the home screen and opens offline. Tested at the root path on 3 emulated phones with no sideways scrolling, and deep links work.
 
 ## Phase 5–8 reviews (2026-11-17)
 Internal subagent reviews by the same AI system; not an independent human audit.

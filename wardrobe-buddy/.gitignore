@@ -45,3 +45,6 @@ coverage/
 
 # Personal: photo of the co-designer's sketch stays out of the public repo (D-041)
 docs/sketch.jpeg
+
+# Built web app (published to the organisation Pages repo, D-055)
+dist-site/

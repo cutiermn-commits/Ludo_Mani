@@ -1,6 +1,6 @@
-// Builds the mobile-first browser version into ../docs/wardrobe for GitHub Pages
-// (served at https://cutiermn-commits.github.io/Ludo_Mani/wardrobe/ from the ludo-app branch).
-//   npm run build:web
+// Builds the mobile-first browser version into ./dist-site for GitHub Pages, served from its own
+// origin (web/site.json, D-055: https://wardrobe-buddy.github.io/), never a shared one.
+//   npm run build:web            then publish dist-site/ to the organisation's <org>.github.io repo
 // Adds: home-screen install (web app manifest + icons), mobile meta tags, a 404.html
 // fallback so reloading a deep link works on GitHub Pages, and an offline service worker.
 // No analytics, no third-party scripts or fonts.
@@ -11,15 +11,16 @@ import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const BASE = '/Ludo_Mani/wardrobe'; // GitHub Pages paths are case-sensitive: matches the repo name
-const out = join(root, '..', 'docs', 'wardrobe');
+const site = JSON.parse(readFileSync(join(root, 'web', 'site.json'), 'utf8'));
+const BASE = site.basePath.replace(/\/$/, ''); // '' = site root; GitHub Pages paths are case-sensitive
+const out = join(root, 'dist-site');
 
 if (existsSync(out)) rmSync(out, { recursive: true });
 const r = spawnSync('npx', ['expo', 'export', '--platform', 'web', '--output-dir', out, '--clear'], {
   cwd: root,
   stdio: 'inherit',
   shell: process.platform === 'win32',
-  env: { ...process.env, WEB_BASE_URL: BASE },
+  env: { ...process.env, ...(BASE ? { WEB_BASE_URL: BASE } : {}) },
 });
 if (r.status !== 0) process.exit(r.status ?? 1);
 
@@ -85,4 +86,6 @@ const sw = readFileSync(join(root, 'web', 'sw.template.js'), 'utf8')
   .replace('__FILES__', JSON.stringify(urls, null, 2));
 writeFileSync(join(out, 'sw.js'), sw);
 
-console.log(`Web build ready in docs/wardrobe (${urls.length} files precached, served at https://cutiermn-commits.github.io${BASE}/)`);
+// GitHub Pages: serve folders starting with _ (Expo's _expo/) instead of running Jekyll.
+writeFileSync(join(out, '.nojekyll'), '');
+console.log(`Web build ready in dist-site (${urls.length} files precached) for ${site.origin}${BASE}/`);
