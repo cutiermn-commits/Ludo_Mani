@@ -43,22 +43,6 @@ const manifest = {
 };
 writeFileSync(join(out, 'manifest.webmanifest'), JSON.stringify(manifest, null, 2));
 
-// Service worker: precache every built file (hashed names) so the app opens offline.
-const files = [];
-(function walk(dir) {
-  for (const name of readdirSync(dir)) {
-    const p = join(dir, name);
-    if (statSync(p).isDirectory()) walk(p);
-    else if (!name.endsWith('.map')) files.push(`${BASE}/${relative(out, p).split(sep).join('/')}`);
-  }
-})(out);
-const version = createHash('sha256').update(files.join('|')).digest('hex').slice(0, 12);
-const sw = readFileSync(join(root, 'web', 'sw.template.js'), 'utf8')
-  .replace('__VERSION__', version)
-  .replace('__BASE__', BASE)
-  .replace('__FILES__', JSON.stringify(files.filter((f) => !f.endsWith('/404.html')), null, 2));
-writeFileSync(join(out, 'sw.js'), sw);
-
 const indexPath = join(out, 'index.html');
 let html = readFileSync(indexPath, 'utf8');
 html = html.replace(/<meta name="viewport"[^>]*>/, '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">');
@@ -78,4 +62,27 @@ html = html.replace('</head>', `${head}\n</head>`);
 writeFileSync(indexPath, html);
 // GitHub Pages serves 404.html for unknown paths: the single-page app then routes itself.
 writeFileSync(join(out, '404.html'), html);
-console.log(`Web build ready in docs/wardrobe (${files.length} files, served at https://cutiermn-commits.github.io${BASE}/)`);
+// Service worker: precache every built file (hashed names) so the app opens offline.
+const files = [];
+(function walk(dir) {
+  for (const name of readdirSync(dir)) {
+    const p = join(dir, name);
+    if (statSync(p).isDirectory()) walk(p);
+    else if (!name.endsWith('.map')) files.push(p);
+  }
+})(out);
+// Not precached: the service worker itself, and the 404 copy (written below).
+const precache = files.filter((p) => !/[\\/](sw\.js|404\.html)$/.test(p));
+// Version from file CONTENTS, so a change to un-hashed files (index.html, manifest, icons) also
+// produces a new service worker and refreshes the cache.
+const hash = createHash('sha256');
+for (const p of precache.sort()) hash.update(relative(out, p)).update(readFileSync(p));
+const version = hash.digest('hex').slice(0, 12);
+const urls = precache.map((p) => `${BASE}/${relative(out, p).split(sep).join('/')}`);
+const sw = readFileSync(join(root, 'web', 'sw.template.js'), 'utf8')
+  .replace('__VERSION__', version)
+  .replace('__BASE__', BASE)
+  .replace('__FILES__', JSON.stringify(urls, null, 2));
+writeFileSync(join(out, 'sw.js'), sw);
+
+console.log(`Web build ready in docs/wardrobe (${urls.length} files precached, served at https://cutiermn-commits.github.io${BASE}/)`);

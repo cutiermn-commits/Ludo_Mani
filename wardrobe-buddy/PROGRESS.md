@@ -146,3 +146,38 @@ Internal subagent reviews by the same AI system; not an independent human audit.
 
 ## Browser version (2026-11-17)
 Mobile-first web build: `npm run build:web` → `docs/wardrobe` (GitHub Pages, D-050). It is installable to the home screen and opens offline. Tested on 3 emulated phones with no sideways scrolling, and deep links work. It goes live when the PR is merged into `ludo-app`.
+
+## Phase 5–8 reviews (2026-11-17)
+Internal subagent reviews by the same AI system; not an independent human audit.
+
+**privacy-safety-auditor**: 0 blockers, 3 major, 7 minor.
+| Finding | Status |
+|---|---|
+| Web storage shared with every page on `cutiermn-commits.github.io` (incl. Ludo) | 📝 **Owner decision D-055** before the web goes live (own origin recommended) |
+| "Not backed up to the cloud" untrue on iOS | ✅ Wording now Android-only; iOS backup NOT VERIFIED, decide before iOS (D-056) |
+| "Face always blurred" overclaims (fixed area, no detection); diary had no blur-all | ✅ Honest wording in app, policies and listing; diary "Blur the whole photo" (D-056) |
+| Export file could stay in cache | ✅ Swept at start-up (D-057) |
+| expo-sharing note missed the share-into-app network code | ✅ Note corrected + test that its plugin stays off |
+| Parent policy missed town, school rules, cached forecast | ✅ Added (EN + DA) |
+| Kids' policy hid the export | ✅ "A grown-up can save a copy" |
+| Delete confirmation didn't name photos/diary | ✅ Updated |
+| Export not in Data safety | 📝 Noted (user-initiated), confirm in Play Console |
+| Device file paths in export | ✅ Keys by id, no `file://` in the file (test) |
+
+**architecture-reviewer**
+| Finding | Status |
+|---|---|
+| High: open tab breaks after a deploy (old chunks deleted) | ✅ Keep previous cache (D-058) |
+| Version hash from file names only | ✅ Content hash, computed after index.html edits |
+| sw.js/404.html exclusion by accident | ✅ Explicit filter |
+| No navigation timeout | ✅ 3 s, then cached app |
+| Web export triples photo data | ✅ Inline photos not repeated, no pretty-printing |
+| Web diary unbounded in localStorage | ✅ Capped at 30 on web with a clear message |
+| Native export one giant string | ✅ Written photo by photo with append |
+| Export: no error handling / double tap / file deleted too early | ✅ try/catch + message, busy state, sweep instead of immediate delete |
+| Dead `repo.exportJson`; export imported directly | ✅ Removed; exporter injected into AppState |
+| Haptics on every button | ✅ Chips + primary buttons only |
+| Timing test flaky | ✅ Limit 1000 ms |
+| a11y test is source-based | 📝 Kept as a guard; limits noted |
+
+**Verification:** 793 tests; typecheck and lint clean; web build re-tested on 3 emulated phones (no overflow, deep links, offline start, no errors).

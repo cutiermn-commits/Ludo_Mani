@@ -6,7 +6,7 @@
 
 **Short description** (73/80): Today's weather + your own clothes = an outfit idea each morning. No ads.
 
-**Full description** (1059/4000):
+**Full description** (1063/4000):
 
 What should I wear today? Wardrobe Buddy picks an outfit from your own clothes every morning, matched to the weather and your mood, in about 30 seconds.
 
@@ -15,7 +15,7 @@ What should I wear today? Wardrobe Buddy picks an outfit from your own clothes e
 • Don't forget: rain jacket, umbrella, gloves or sunscreen, only on the days you need them.
 • Week planner: seven days ahead, no repeats in a row.
 • Learns what you like from your stars and quick reasons.
-• Make an avatar, or use a selfie that is always blurred.
+• Make an avatar, or use a selfie with the face area blurred.
 • Danish and English. Pink, blue, green or purple, with dark mode.
 
 Safe by design

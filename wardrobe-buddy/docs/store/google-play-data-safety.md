@@ -25,6 +25,7 @@ Everything else (profile, clothes, photos, selfie, diary, ratings, learning) **n
 | Is all user data encrypted in transit? | **Yes** | HTTPS only (allowlist test) |
 | Do you provide a way for users to request that their data is deleted? | **Yes**: "Delete everything" in the grown-up settings, plus uninstalling | Nothing is stored by the developer |
 | Independent security review | No | — |
+| Parent export (share sheet) | Not declared as collection or sharing: it is started by the user and goes where the parent chooses. NOT VERIFIED against Google's wording; confirm in Play Console | — |
 
 ## Target audience and content (Families policy)
 - **Target age groups:** pick the groups that include **11–12 and 13–15** in Play Console. Groups that include under-13 users make the **Families policy** apply (privacy policy, no ad ID, no precise location, child-safe content). The app is built to that standard already. Play Console's exact age options are NOT VERIFIED.

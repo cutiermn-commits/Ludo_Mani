@@ -28,10 +28,6 @@ describe('repository', () => {
     expect(await storage.getAllKeys()).toEqual(['other:key']);
   });
 
-  it('exports everything as JSON', async () => {
-    const json = JSON.parse(await createRepository(createMemoryStorage()).exportJson());
-    expect(json).toMatchObject({ app: 'wardrobe-buddy', schema: 1, data: { items: [], profile: null } });
-  });
 });
 
 describe('parental gate', () => {

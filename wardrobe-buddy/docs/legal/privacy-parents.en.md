@@ -6,15 +6,16 @@
 
 **What the app stores, and where.** Everything below is stored **only on your child's device** (on the web: only in that browser). We, the developer, never receive it:
 - a nickname (no real name), an age band (11–12 or 13–15), style and colour preferences, "runs cold/warm", theme and language;
+- the town chosen for the weather (and the last forecast, cached for about an hour) and any school dress rules typed in;
 - clothing items with optional photos (resized on the device; photo location and other metadata removed);
-- an optional selfie and optional outfit-diary photos, **always stored with the face area blurred**; the unblurred original is never saved;
+- an optional selfie and optional outfit-diary photos. The top part of each photo, where a face usually is, is blurred before saving (there is no automatic face detection; your child can blur the whole photo), and the unblurred original is never saved;
 - outfits, ratings and what the app has learned from them.
 
-The app has no accounts, no analytics, no advertising or crash-reporting tools, no social features and no links to shops. On Android, cloud backup of the app's data is switched off.
+The app has no accounts, no analytics, no advertising or crash-reporting tools, no social features and no links to shops. On Android, cloud backup of the app's data is switched off. On iPhone, app data may be included in your iCloud device backup [to be checked before the iOS release: NOT VERIFIED].
 
 **Weather lookups (only with your consent).** If you allow it during set-up or later in the grown-up settings, the app asks **Open-Meteo** (open-meteo.com) for the forecast. It sends the town name you search for and the town's approximate coordinates (rounded to about 1 km). Like any internet request, this also reveals the device's IP address to Open-Meteo. No name, age, photos or identifiers are sent. Open-Meteo's own handling of requests is described in its terms and privacy information [link to be checked: NOT VERIFIED]. Weather data is used under CC BY 4.0. If you say no, the app makes no internet requests at all.
 
-**The web version** is a set of files served by GitHub Pages. Like any web host, GitHub can see visitors' IP addresses when serving the files [GitHub privacy statement link: NOT VERIFIED]. The app itself stores data only in the browser.
+**The web version** is a set of files served by GitHub Pages. The browser keeps its data for the whole site address it is served from, so other web pages published at the same address could read it [owner decision D-055: serve the app from its own address]. Like any web host, GitHub can see visitors' IP addresses when serving the files [GitHub privacy statement link: NOT VERIFIED]. The app itself stores data only in the browser.
 
 **Children.** Set-up is done together with a parent, behind a parental gate (a maths question). The gate also protects the town, the weather setting, export and delete.
 

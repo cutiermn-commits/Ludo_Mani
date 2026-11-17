@@ -1,6 +1,6 @@
 # Copy review: Danish and English (D-011)
 
-Generated from `src/i18n/*.json` by `scripts/copy-review.mjs`. 322 strings.
+Generated from `src/i18n/*.json` by `scripts/copy-review.mjs`. 325 strings.
 
 For the reviewer: read the Danish column aloud. Is it natural for an 11–15-year-old in Denmark? Mark anything odd in the "Note" column. `{name}` placeholders are filled in by the app. Things to check especially: item names ("hættetrøje i grå"), the "Why this?" sentences (`why.*`), and words kept the same as English (beige, jeans, Sporty).
 
@@ -116,7 +116,8 @@ For the reviewer: read the Danish column aloud. Is it natural for an 11–15-yea
 |---|---|---|---|
 | `diary.addTitle` | A photo for your diary (if you like) | Et billede til din dagbog (hvis du vil) | |
 | `diary.empty` | No diary photos yet. You can add one when you rate an outfit. | Ingen dagbogsbilleder endnu. Du kan tilføje et, når du bedømmer et outfit. | |
-| `diary.explain` | Take a photo of today's outfit for your diary. Your face is always blurred, and the photo stays on this device. | Tag et billede af dagens outfit til din dagbog. Dit ansigt bliver altid sløret, og billedet bliver på denne enhed. | |
+| `diary.explain` | Take a photo of today's outfit for your diary. The top of the photo, where your face is, gets blurred, and the photo stays on this device. | Tag et billede af dagens outfit til din dagbog. Toppen af billedet, hvor dit ansigt er, bliver sløret, og billedet bliver på denne enhed. | |
+| `diary.full` | Your diary is full on this browser (30 photos). Remove an old photo to add a new one. | Din dagbog er fyldt i denne browser (30 billeder). Fjern et gammelt billede for at tilføje et nyt. | |
 | `diary.photoA11y` | Outfit photo with the face blurred | Outfit-billede med sløret ansigt | |
 | `diary.title` | My outfit diary | Min outfit-dagbog | |
 
@@ -247,13 +248,15 @@ For the reviewer: read the Danish column aloud. Is it natural for an 11–15-yea
 | `parent.attribution` | Weather data by Open-Meteo.com (CC BY 4.0). | Vejrdata fra Open-Meteo.com (CC BY 4.0). | |
 | `parent.city` | Town for the weather | By til vejret | |
 | `parent.data` | Data on this device | Data på denne enhed | |
-| `parent.dataBody` | Profile, wardrobe, photos and ratings are stored only on this device (on the web: in this browser). They are not backed up to the cloud. Uninstalling the app removes them; on the web, clear this site's data in the browser. | Profil, garderobe, billeder og bedømmelser gemmes kun på denne enhed (på nettet: i denne browser). De sikkerhedskopieres ikke i skyen. Når appen slettes, forsvinder de. På nettet skal du rydde sidens data i browseren. | |
+| `parent.dataBody` | Profile, wardrobe, photos and ratings are stored only on this device (on the web: in this browser). On Android they are not backed up to the cloud. Uninstalling the app removes them; on the web, clear this site's data in the browser. | Profil, garderobe, billeder og bedømmelser gemmes kun på denne enhed (på nettet: i denne browser). På Android sikkerhedskopieres de ikke i skyen. Når appen slettes, forsvinder de. På nettet skal du rydde sidens data i browseren. | |
 | `parent.deleteAll` | Delete everything | Slet alt | |
-| `parent.deleteConfirm` | This deletes the profile, wardrobe and ratings on this device. It cannot be undone. | Dette sletter profil, garderobe og bedømmelser på denne enhed. Det kan ikke fortrydes. | |
+| `parent.deleteConfirm` | This deletes the profile, clothes, all photos (also the selfie and diary) and ratings on this device. It cannot be undone. | Dette sletter profil, tøj, alle billeder (også selfie og dagbog) og bedømmelser på denne enhed. Det kan ikke fortrydes. | |
 | `parent.deleteYes` | Yes, delete everything | Ja, slet alt | |
 | `parent.export` | Export data and photos | Eksportér data og billeder | |
+| `parent.exportFailed` | The export did not work. There may not be enough space; try again later. | Eksporten virkede ikke. Der er måske ikke plads nok; prøv igen senere. | |
 | `parent.exportNote` | One file with all data and photos (selfies and diary photos stay blurred). On a phone you choose where to save it; on the web it downloads. Keep it private. | Én fil med alle data og billeder (selfies og dagbogsbilleder forbliver slørede). På en telefon vælger du, hvor den skal gemmes; på nettet bliver den downloadet. Hold den privat. | |
 | `parent.exportUnavailable` | Sharing is not available on this device. | Deling er ikke tilgængelig på denne enhed. | |
+| `parent.exporting` | Preparing the export… | Gør eksporten klar… | |
 | `parent.learningReset` | Done. The app starts learning from scratch. | Færdig. Appen begynder at lære forfra. | |
 | `parent.open` | Grown-up settings | Indstillinger for voksne | |
 | `parent.privacyBody` | The only internet requests are weather lookups (if allowed above): the town and the device's internet address go to Open-Meteo. No name, age or photos are ever sent. | De eneste forbindelser til internettet er vejropslag (hvis det er tilladt ovenfor): byen og enhedens internetadresse sendes til Open-Meteo. Navn, alder og billeder sendes aldrig. | |
@@ -299,8 +302,8 @@ For the reviewer: read the Danish column aloud. Is it natural for an 11–15-yea
 |---|---|---|---|
 | `selfie.a11y` | Your photo, with your face blurred | Dit billede med sløret ansigt | |
 | `selfie.blurAll` | Blur the whole photo | Slør hele billedet | |
-| `selfie.blurred` | Your face is blurred to keep you private. | Dit ansigt er sløret, så du er beskyttet. | |
-| `selfie.explain` | If you like, use a photo of yourself instead of the avatar. Your face is always blurred, and the photo stays on this device. The phone may ask if the app can use the camera. | Hvis du vil, kan du bruge et billede af dig selv i stedet for avataren. Dit ansigt bliver altid sløret, og billedet bliver på denne enhed. Telefonen spørger måske, om appen må bruge kameraet. | |
+| `selfie.blurred` | The top of the photo, where your face usually is, is blurred. If your face is lower, tap "Blur the whole photo". | Toppen af billedet, hvor dit ansigt plejer at være, er sløret. Er dit ansigt længere nede, så tryk på "Slør hele billedet". | |
+| `selfie.explain` | If you like, use a photo of yourself instead of the avatar. The top of the photo, where your face is, gets blurred, and the photo stays on this device. The phone may ask if the app can use the camera. | Hvis du vil, kan du bruge et billede af dig selv i stedet for avataren. Toppen af billedet, hvor dit ansigt er, bliver sløret, og billedet bliver på denne enhed. Telefonen spørger måske, om appen må bruge kameraet. | |
 | `selfie.onlyYou` | Only photos of yourself, no friends or family. | Kun billeder af dig selv, ikke af venner eller familie. | |
 | `selfie.take` | Take a selfie | Tag en selfie | |
 | `selfie.title` | Or use a photo of yourself | Eller brug et billede af dig selv | |

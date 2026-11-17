@@ -2,20 +2,20 @@
 // Caches ONLY this app's own files (same origin, under the base path). It never touches
 // other hosts (the weather service is not cached here; the app keeps its own 1-hour cache),
 // and it stores no personal data: profile, clothes and photos live in the app's storage.
-const CACHE = 'wb-a2618327d8b8';
+const CACHE = 'wb-dec4bc014085';
 const BASE = '/Ludo_Mani/wardrobe';
 const PRECACHE = [
   "/Ludo_Mani/wardrobe/_expo/static/js/web/[id]-af8f7c41d13aefc5aab9396850ff2d6d.js",
   "/Ludo_Mani/wardrobe/_expo/static/js/web/[outfitId]-e295314a8a789c9d24efe61b7be040f3.js",
-  "/Ludo_Mani/wardrobe/_expo/static/js/web/__common-0e3df01f0779552c8df92c5316845efd.js",
+  "/Ludo_Mani/wardrobe/_expo/static/js/web/__common-65a2b2e265e28e33017cfbf70a8535ea.js",
   "/Ludo_Mani/wardrobe/_expo/static/js/web/__expo-metro-runtime-ed4c1cfa6193d76fc294130e42bd1916.js",
   "/Ludo_Mani/wardrobe/_expo/static/js/web/_layout-18afc0b562fc5d176f150761db610b95.js",
   "/Ludo_Mani/wardrobe/_expo/static/js/web/_layout-fa4ef2a9a176725f24ee55e02b28a360.js",
-  "/Ludo_Mani/wardrobe/_expo/static/js/web/entry-e6465923f4ca685cd1f11e946aa7fc50.js",
+  "/Ludo_Mani/wardrobe/_expo/static/js/web/entry-d9f1ca1da448416a9d7b23f42d8306ad.js",
   "/Ludo_Mani/wardrobe/_expo/static/js/web/index-e49e67c4b4f20edb7fad5fcfa7159dab.js",
   "/Ludo_Mani/wardrobe/_expo/static/js/web/me-685090908ea8224186fdba7cf3c5fe73.js",
   "/Ludo_Mani/wardrobe/_expo/static/js/web/onboarding-d5a232aa3ce699d4191056e75bcb9201.js",
-  "/Ludo_Mani/wardrobe/_expo/static/js/web/parent-cdb59792a58011e0d0c71604ef01bb93.js",
+  "/Ludo_Mani/wardrobe/_expo/static/js/web/parent-dc39213276230686f3bf15b14ac21a55.js",
   "/Ludo_Mani/wardrobe/_expo/static/js/web/wardrobe-d5d33247e4d6ddf4319553c2a3161ec4.js",
   "/Ludo_Mani/wardrobe/_expo/static/js/web/week-ff3701cda43ee244c55ea6957d42baf6.js",
   "/Ludo_Mani/wardrobe/apple-touch-icon.png",
@@ -50,14 +50,29 @@ self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
 });
 
+// Keep this version and the one before it: a tab that is still open on the old version keeps
+// lazy-loading its old (hashed) route files, which are gone from the server after a deploy.
+// Cache Storage lists keys in creation order.
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k.startsWith('wb-') && k !== CACHE).map((k) => caches.delete(k))))
+      .then((keys) => {
+        const ours = keys.filter((k) => k.startsWith('wb-'));
+        const keep = new Set([CACHE, ...ours.filter((k) => k !== CACHE).slice(-1)]);
+        return Promise.all(ours.filter((k) => !keep.has(k)).map((k) => caches.delete(k)));
+      })
       .then(() => self.clients.claim()),
   );
 });
+
+/** Network first with a time limit, so a weak signal doesn't mean a long blank screen. */
+function withTimeout(promise, ms) {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error('timeout')), ms);
+    promise.then((v) => (clearTimeout(t), resolve(v)), (e) => (clearTimeout(t), reject(e)));
+  });
+}
 
 self.addEventListener('fetch', (event) => {
   const req = event.request;
@@ -65,9 +80,10 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET' || url.origin !== self.location.origin || !url.pathname.startsWith(BASE)) return;
   if (req.mode === 'navigate') {
     // App pages: network first (to get updates), the cached app shell when offline.
-    event.respondWith(fetch(req).catch(() => caches.match(BASE + '/index.html')));
+    event.respondWith(withTimeout(fetch(req), 3000).catch(() => caches.match(BASE + '/index.html')));
     return;
   }
-  // Built files have content hashes in their names, so cache-first is safe.
+  // Built files have content hashes in their names, so cache-first is safe. `caches.match`
+  // searches this version's cache and the previous one.
   event.respondWith(caches.match(req).then((hit) => hit || fetch(req)));
 });

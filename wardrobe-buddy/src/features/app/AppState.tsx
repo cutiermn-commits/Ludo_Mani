@@ -6,8 +6,7 @@ import { createRepository, emptyAppData, type AppData } from '@/data/repository'
 import type { City, ClothingItem, DiaryPhoto, Locale, Mood, Outfit, Profile, Rating, WeatherDay } from '@/domain/types';
 import { applyRating, initialLearning, pruneLearning } from '@/engine';
 import { detectLocale, translate, type TKey, type TParams } from '@/i18n';
-import { buildExport } from '@/services/export/buildExport';
-import { readPhotoAsDataUri } from '@/services/export/share';
+import { shareExport } from '@/services/export/share';
 import { photoStore as devicePhotoStore } from '@/services/photos/store';
 import type { PhotoStore } from '@/services/photos/types';
 import { loadForecast, type ForecastOutcome } from '@/services/weather/cache';
@@ -41,7 +40,8 @@ interface AppActions {
   rateOutfit: (r: Rating) => Promise<void>;
   resetLearning: () => Promise<void>;
   deleteEverything: () => Promise<void>;
-  exportJson: () => Promise<string>;
+  /** Parent export of all data + photos; false when sharing is unavailable. */
+  exportAll: (dialogTitle: string) => Promise<boolean>;
   refreshWeather: (force?: boolean) => Promise<void>;
   setMood: (m: Mood | undefined) => void;
   setManualToday: (d: WeatherDay | null) => void;
@@ -59,11 +59,13 @@ export function AppProvider({
   storage = deviceStorage,
   weather,
   photos = devicePhotoStore,
+  exporter = shareExport,
 }: {
   children: ReactNode;
   storage?: typeof deviceStorage;
   weather?: WeatherProvider;
   photos?: PhotoStore;
+  exporter?: (data: AppData, now: Date, title: string) => Promise<boolean>;
 }) {
   const repo = useMemo(() => createRepository(storage), [storage]);
   const rawProvider = useMemo(() => weather ?? createOpenMeteoProvider(), [weather]);
@@ -207,13 +209,13 @@ export function AppProvider({
         await photos.purgeCaches();
         setState((s) => ({ ...s, ...emptyAppData(), mood: undefined, manualToday: null, weatherStatus: 'idle' }));
       },
-      exportJson: async () => buildExport(await repo.load(), readPhotoAsDataUri, new Date()),
+      exportAll: async (title) => exporter(await repo.load(), new Date(), title),
       photos,
       refreshWeather,
       setMood: (mood) => setState((s) => ({ ...s, mood })),
       setManualToday: (manualToday) => setState((s) => ({ ...s, manualToday })),
     }),
-    [patch, photos, rawProvider, refreshWeather, repo],
+    [patch, photos, rawProvider, refreshWeather, repo, exporter],
   );
 
   // Fetch weather once the city is known.

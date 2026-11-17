@@ -1,4 +1,4 @@
-import { Image, View } from 'react-native';
+import { Image, Platform, View } from 'react-native';
 
 import { useApp } from '@/features/app/AppState';
 import { newId } from '@/features/app/dates';
@@ -6,6 +6,8 @@ import { PhotoStatus, usePhotoAction } from '@/features/photos/PhotoAction';
 import { pickSelfie, processSelfie } from '@/services/photos/selfie';
 import { Card, Chip, Row, T } from '@/ui/components';
 import { radius } from '@/ui/theme';
+
+export const WEB_DIARY_LIMIT = 30;
 
 /**
  * Optional "I wore this" photo for her diary (F10). Uses the selfie pipeline, so the face area
@@ -16,6 +18,8 @@ export function DiaryPhotoCard({ outfitId }: { outfitId: string }) {
   const { t, photos, diary, addDiaryPhoto, removeDiaryPhoto } = useApp();
   const action = usePhotoAction();
   const entry = diary.find((d) => d.outfitId === outfitId);
+  // Web keeps photos inside browser storage (~5 MB, D-048), so the diary is capped there.
+  const full = Platform.OS === 'web' && !entry && diary.length >= WEB_DIARY_LIMIT;
 
   const add = (source: 'camera' | 'library') =>
     action.run(
@@ -38,10 +42,24 @@ export function DiaryPhotoCard({ outfitId }: { outfitId: string }) {
         <T variant="small">{t('diary.explain')}</T>
       )}
       <PhotoStatus action={action} />
-      {action.state !== 'intro' && action.state !== 'working' && (
+      {full && <T muted>{t('diary.full')}</T>}
+      {!full && action.state !== 'intro' && action.state !== 'working' && (
         <Row wrap>
           <Chip icon="📸" label={t('photo.take')} onPress={() => action.withCameraIntro(() => void add('camera'))} />
           <Chip icon="🖼️" label={t('photo.choose')} onPress={() => void add('library')} />
+          {entry && (
+            <Chip
+              icon="🌫️"
+              label={t('selfie.blurAll')}
+              onPress={() =>
+                void action.run(
+                  async () => ({ kind: 'ok' as const, uri: entry.photoUri, width: 0, height: 0 }),
+                  (p) => processSelfie(p, photos, { whole: true, deleteSource: false }),
+                  (photoUri) => addDiaryPhoto({ ...entry, photoUri }),
+                )
+              }
+            />
+          )}
           {entry && <Chip icon="✖️" label={t('photo.remove')} onPress={() => void removeDiaryPhoto(entry.id)} />}
         </Row>
       )}

@@ -6,7 +6,7 @@ import { AppProvider } from '@/features/app/AppState';
 
 import Parent from '../../../app/parent';
 
-jest.mock('@/services/export/share', () => ({ readPhotoAsDataUri: jest.fn(), shareExport: jest.fn() }));
+jest.mock('@/services/export/share', () => ({ shareExport: jest.fn() }));
 jest.mock('@/data/kv', () => ({ deviceStorage: {} }));
 jest.mock('@/services/photos/store', () => ({ photoStore: { save: jest.fn(), remove: jest.fn(), removeAll: jest.fn(), temp: jest.fn(), discard: jest.fn(), purgeCaches: jest.fn(async () => undefined), listSaved: jest.fn(async () => []) } }));
 jest.mock('expo-router', () => ({ router: { replace: jest.fn(), back: jest.fn() } }));

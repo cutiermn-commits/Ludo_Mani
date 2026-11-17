@@ -38,7 +38,7 @@ export const photoStore: PhotoStore = {
       if (dir.exists) dir.delete();
     }
     for (const entry of new Directory(Paths.cache).list()) {
-      if (entry instanceof File && entry.name.startsWith('wb-tmp-')) entry.delete();
+      if (entry instanceof File && (entry.name.startsWith('wb-tmp-') || entry.name.startsWith('wardrobe-buddy-export'))) entry.delete();
     }
   },
   async listSaved() {

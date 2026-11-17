@@ -160,3 +160,11 @@ describe('forecast nulls', () => {
     expect(days[0]).toMatchObject({ feelsMinC: 14, rainChanceMaxPct: 0 });
   });
 });
+
+describe('expo-sharing stays outgoing-only', () => {
+  it('its config plugin (share-into-app, which can fetch content) is not enabled', () => {
+    const app = JSON.parse(fs.readFileSync(path.join(ROOT, 'app.json'), 'utf8'));
+    const names = (app.expo.plugins as (string | [string, unknown])[]).map((p) => (Array.isArray(p) ? p[0] : p));
+    expect(names).not.toContain('expo-sharing');
+  });
+});

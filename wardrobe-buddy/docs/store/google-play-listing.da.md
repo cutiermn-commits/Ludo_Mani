@@ -6,7 +6,7 @@
 
 **Short description** (75/80): Dagens vejr + dit eget tøj = et outfit-forslag hver morgen. Ingen reklamer.
 
-**Full description** (1117/4000):
+**Full description** (1121/4000):
 
 Hvad skal jeg have på i dag? Wardrobe Buddy finder et outfit fra dit eget tøj hver morgen, der passer til vejret og dit humør, på cirka 30 sekunder.
 
@@ -15,7 +15,7 @@ Hvad skal jeg have på i dag? Wardrobe Buddy finder et outfit fra dit eget tøj 
 • Husk: regnjakke, paraply, handsker eller solcreme, kun de dage du har brug for det.
 • Ugeplan: syv dage frem, uden gentagelser to dage i træk.
 • Lærer hvad du kan lide ud fra dine stjerner og korte grunde.
-• Lav en avatar, eller brug en selfie, der altid er sløret.
+• Lav en avatar, eller brug en selfie med sløret ansigtsområde.
 • Dansk og engelsk. Lyserød, blå, grøn eller lilla, med mørk tilstand.
 
 Sikker fra starten

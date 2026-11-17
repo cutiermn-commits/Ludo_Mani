@@ -63,10 +63,6 @@ export function createRepository(storage: StorageAdapter) {
       const keys = await storage.getAllKeys();
       for (const k of keys) if (k.startsWith(PREFIX)) await storage.removeItem(k);
     },
-    /** Parent export (JSON). Photos are added to the export when photo capture lands (Phase 3/8). */
-    async exportJson(): Promise<string> {
-      return JSON.stringify({ app: 'wardrobe-buddy', schema: 1, data: await this.load() }, null, 2);
-    },
   };
 }
 

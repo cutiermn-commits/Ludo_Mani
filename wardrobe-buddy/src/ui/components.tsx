@@ -62,7 +62,7 @@ export function Button({
       accessibilityState={{ disabled: !!disabled }}
       disabled={disabled}
       onPress={() => {
-        tapFeedback(kind === 'primary' ? 'confirm' : 'select');
+        if (kind === 'primary') tapFeedback('confirm');
         onPress();
       }}
       style={({ pressed }) => [
