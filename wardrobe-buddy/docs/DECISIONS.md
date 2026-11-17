@@ -70,3 +70,9 @@ Format: ID · date · decision · why · alternatives · status. Claude Code add
   - **Hardening after the review:** zlib header, stored-block length and over-subscribed Huffman checks; output and size caps; a fuzz test; 16-bit PNG support.
   - **Alternative if it ever causes trouble:** `fflate` for inflate (no dependencies), keeping the rest in-house.
 - **D-048 · Photo-file lifecycle.** New data is saved before an old photo file is deleted. A start-up sweep deletes saved photos that no item or profile refers to (abandoned edits or set-up) and empties the image caches. Storage errors (e.g. full browser storage) are shown instead of silently losing data. Web photos are 320 px at quality 0.5 to fit browser storage.
+- **D-049 · Expo project linked (owner, 2026-11-17).** The project is `@cutiermn/wardrobe-buddy` (EAS project ID in `app.json`), the same Expo account as the Ludo app.
+  - **Android signing key:** created and stored by Expo (remote credentials). Google Play needs this same key for every future update, so it must not be deleted from the Expo account.
+  - **versionCode:** managed remotely and starts at 1.
+  - **Builds from the cloud session:** they use an Expo access token kept as a network secret on the session environment; it is never in the repository.
+  - **EAS uploads the project through git,** so git-ignored files such as the sketch photo are not sent.
+  - **Expo CLI's own tracking:** the CLI tries to reach `cdp.expo.dev`, likely usage analytics (NOT VERIFIED). It is blocked in the cloud session. This concerns the build tool only, not the app.

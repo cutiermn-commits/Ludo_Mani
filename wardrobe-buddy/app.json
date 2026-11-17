@@ -63,6 +63,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "owner": "cutiermn",
+    "extra": {
+      "eas": {
+        "projectId": "a7c0899c-eab8-4c4e-adaa-4d4bfb7611ab"
+      }
     }
   }
 }
