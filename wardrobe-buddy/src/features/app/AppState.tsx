@@ -6,6 +6,8 @@ import { createRepository, emptyAppData, type AppData } from '@/data/repository'
 import type { City, ClothingItem, Locale, Mood, Outfit, Profile, Rating, WeatherDay } from '@/domain/types';
 import { applyRating, initialLearning, pruneLearning } from '@/engine';
 import { detectLocale, translate, type TKey, type TParams } from '@/i18n';
+import { photoStore as devicePhotoStore } from '@/services/photos/store';
+import type { PhotoStore } from '@/services/photos/types';
 import { loadForecast, type ForecastOutcome } from '@/services/weather/cache';
 import { createOpenMeteoProvider } from '@/services/weather/openMeteo';
 import type { WeatherProvider } from '@/services/weather/types';
@@ -43,11 +45,22 @@ interface AppActions {
   setManualToday: (d: WeatherDay | null) => void;
   /** Town search. `consented` is the parent's choice (from the profile, or from onboarding before the profile exists). */
   searchCity: (query: string, locale: Locale, consented: boolean) => Promise<City[]>;
+  photos: PhotoStore;
 }
 
 const Ctx = createContext<(AppState & AppActions) | null>(null);
 
-export function AppProvider({ children, storage = deviceStorage, weather }: { children: ReactNode; storage?: typeof deviceStorage; weather?: WeatherProvider }) {
+export function AppProvider({
+  children,
+  storage = deviceStorage,
+  weather,
+  photos = devicePhotoStore,
+}: {
+  children: ReactNode;
+  storage?: typeof deviceStorage;
+  weather?: WeatherProvider;
+  photos?: PhotoStore;
+}) {
   const repo = useMemo(() => createRepository(storage), [storage]);
   const rawProvider = useMemo(() => weather ?? createOpenMeteoProvider(), [weather]);
   const [state, setState] = useState<AppState>({
@@ -138,10 +151,14 @@ export function AppProvider({ children, storage = deviceStorage, weather }: { ch
       },
       upsertItem: async (item) => {
         const items = ref.current.items;
+        const old = items.find((i) => i.id === item.id);
+        if (old?.photoUri && old.photoUri !== item.photoUri) await photos.remove(old.photoUri);
         const next = items.some((i) => i.id === item.id) ? items.map((i) => (i.id === item.id ? item : i)) : [...items, item];
         await patch('items', next);
       },
       deleteItem: async (id) => {
+        const gone = ref.current.items.find((i) => i.id === id);
+        if (gone?.photoUri) await photos.remove(gone.photoUri);
         const next = ref.current.items.filter((i) => i.id !== id);
         await patch('items', next);
         await patch('learning', pruneLearning(ref.current.learning, new Set(next.map((i) => i.id))));
@@ -164,14 +181,16 @@ export function AppProvider({ children, storage = deviceStorage, weather }: { ch
         requestSeq.current += 1; // ignore any weather reply still in flight
         ref.current = { ...ref.current, ...emptyAppData() };
         await repo.deleteAll();
+        await photos.removeAll();
         setState((s) => ({ ...s, ...emptyAppData(), mood: undefined, manualToday: null, weatherStatus: 'idle' }));
       },
       exportJson: () => repo.exportJson(),
+      photos,
       refreshWeather,
       setMood: (mood) => setState((s) => ({ ...s, mood })),
       setManualToday: (manualToday) => setState((s) => ({ ...s, manualToday })),
     }),
-    [patch, rawProvider, refreshWeather, repo],
+    [patch, photos, rawProvider, refreshWeather, repo],
   );
 
   // Fetch weather once the city is known.

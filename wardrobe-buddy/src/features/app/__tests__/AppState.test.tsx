@@ -9,6 +9,7 @@ import { AppProvider, useApp } from '../AppState';
 
 // The native SQLite store isn't used here (each test passes its own memory storage).
 jest.mock('@/data/kv', () => ({ deviceStorage: {} }));
+jest.mock('@/services/photos/store', () => ({ photoStore: { save: jest.fn(), remove: jest.fn(), removeAll: jest.fn() } }));
 
 const CPH: City = { name: 'København', label: 'DK', lat: 55.68, lon: 12.57 };
 const AAR: City = { name: 'Aarhus', label: 'DK', lat: 56.16, lon: 10.2 };

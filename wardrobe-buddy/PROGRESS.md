@@ -8,8 +8,8 @@ _Last updated: 2026-11-17 (Claude Code)_
 | 0. Foundation | ✅ Done (web verified; iOS/Android not run, see Blocked) | Expo SDK 58 + TS strict + Expo Router (`src/app`), Jest, 4 themes × light/dark (WCAG AA test), DA/EN i18n with parity test, `StorageAdapter`, `safeFetch` host allowlist, dependency gate, `npm run ci` |
 | 1. Engine first | ✅ Done | `src/engine`: bands, extras, scoring, hard rules, 1 + 2 alternatives, reasons, week planner, learning. Coverage 98.8 % statements / 93.6 % branches |
 | 2. Weather | ✅ Done (forecast fields NOT VERIFIED live) | City search, forecast, 1 h cache, stale/offline fallback, "What's it like outside?", attribution, no identifiers (tested) |
-| 3. Wardrobe | 🟡 Partly | Grid, filters, ♥, laundry toggle, add/edit/delete form. **Photo capture not built: needs your OK for the camera/photo permission** |
-| 4. Me | 🟡 Partly | Onboarding (6 steps), parental gate, profile, avatar maker, theme, language, likes. Selfie + face blur not built (D-033) |
+| 3. Wardrobe | 🟢 Built (device test pending) | Grid, filters, ♥, laundry toggle, add/edit/delete; **photos** from camera or library, resized on the device, metadata (EXIF/GPS) stripped, stored in the sandbox, colours suggested from the photo (D-042). Exit criterion "add 20 items smoothly on a mid-range Android" needs a real phone |
+| 4. Me | 🟡 Partly | Onboarding (6 steps), parental gate, profile, avatar maker, theme, language, likes. Selfie + blur (D-033, approved) is next |
 | 5. Today + Week | 🟡 First version | Weather card, mood picker, avatar wearing the outfit, swap tabs, "Why this?", don't-forget chips, week view |
 | 6. Rating + learning | 🟡 First version | Stars + reason chips, "I wore this", learning shown in Me, reset in the parent area. Diary photo not built |
 | 7. Polish | ⬜ Not started | |
@@ -27,10 +27,9 @@ _Last updated: 2026-11-17 (Claude Code)_
 - Web build: `npx expo export --platform web`
 
 ## Blocked / needs the owner
-- **Camera/photo permission** (Phase 3, F3, F10): needs your approval (CLAUDE.md hard stop).
 - **D-015** where the code should live (own repo recommended). The `Ludo_Mani` repository is public, so personal details about the first user were removed from the docs and the sketch photo is kept out of git (`docs/sketch.jpeg` is git-ignored); see D-041.
-- **D-035** confirm the weather-consent wording; **D-036** confirm Me is not "settings".
-- **D-033** the face-blur approach; **D-025** gate difficulty (or a parent PIN).
+- **D-044** Android package name + Play account type (personal accounts need a 14-day closed test with 12 testers).
+- **New repository** (D-015): create an empty private repo and tell Claude its name; the project moves with its history.
 - Existing: D-004 store category, D-008 Open-Meteo confirmation email, D-009 legal review, D-010 developer accounts, D-011 native-speaker copy review.
 
 ## Open questions / NOT VERIFIED
@@ -42,10 +41,11 @@ _Last updated: 2026-11-17 (Claude Code)_
 - The clothing glyphs are emoji, which look different on each platform; they are temporary until photos.
 - App icon and splash are still the Expo template images. The co-designer's sketch (pink/blue girl with clothes) needs original art.
 
-## Next
-1. Your approval for camera/photos → Phase 3 (expo-image-picker / expo-image-manipulator ~58.x, resize, dominant-colour detection).
-2. Phase 4: selfie + blur per D-033; Phase 6: diary photo.
-3. Phase 7: animations, haptics, screen-reader pass on device, Danish layout review.
+## Next (priority: Google Play → web → iOS, D-043)
+1. Android: package name (D-044) → `eas build --profile preview -p android` → install the APK on her phone and run the Phase 3 exit test (20 items).
+2. Phase 4: selfie + blur (D-033); Phase 6: diary photo.
+3. Play paperwork drafts: Families target audience, Data safety form, privacy policy (kid + parent, DA + EN), start the closed test early (14 days).
+4. Web hosting decision, then iOS last.
 
 ## Review of the starter docs (kickoff step 2)
 | # | What | Suggested fix | Done? |

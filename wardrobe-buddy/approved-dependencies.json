@@ -9,9 +9,21 @@
       "network": "none",
       "why": "required by expo-router"
     },
+    "expo-file-system": {
+      "network": "has download/upload APIs; we never call them (test scans src/ for them)",
+      "why": "store photos in the app sandbox"
+    },
     "expo-font": {
       "network": "none (loads bundled fonts only)",
       "why": "template default, used by expo-router/vector icons"
+    },
+    "expo-image-manipulator": {
+      "network": "none (grep: no fetch/XHR in build/)",
+      "why": "resize/re-encode photos and make the colour thumbnail on-device"
+    },
+    "expo-image-picker": {
+      "network": "none (grep: no fetch/XHR in build/)",
+      "why": "clothing photos from camera or library (Phase 3, owner approved D-042); RECORD_AUDIO blocked via config"
     },
     "expo-linking": {
       "network": "none",

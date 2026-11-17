@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { Category, ClothingItem, ColorName, Subcategory } from '@/domain/types';
 import { useApp } from '@/features/app/AppState';
@@ -112,11 +112,16 @@ export function ItemTile({
             opacity: item.inLaundry ? 0.55 : pressed ? 0.85 : 1,
           },
         ]}>
-        {/* Photos arrive in Phase 3 (camera permission needs owner approval). */}
-        <View style={[tile.blob, { backgroundColor: CLOTHING_HEX[main], width: size * 0.7, height: size * 0.7, borderRadius: size * 0.35 }]} />
-        <Text style={{ fontSize: size * 0.42 }} importantForAccessibility="no" accessibilityElementsHidden>
-          {itemIcon(item)}
-        </Text>
+        {item.photoUri ? (
+          <Image source={{ uri: item.photoUri }} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityIgnoresInvertColors />
+        ) : (
+          <>
+            <View style={[tile.blob, { backgroundColor: CLOTHING_HEX[main], width: size * 0.7, height: size * 0.7, borderRadius: size * 0.35 }]} />
+            <Text style={{ fontSize: size * 0.42 }} importantForAccessibility="no" accessibilityElementsHidden>
+              {itemIcon(item)}
+            </Text>
+          </>
+        )}
         {item.inLaundry && (
           <Text style={tile.badge} importantForAccessibility="no" accessibilityElementsHidden>
             🧺

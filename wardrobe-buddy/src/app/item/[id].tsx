@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
-import { Switch, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Platform, Switch, View } from 'react-native';
 
 import {
   CATEGORIES,
@@ -17,6 +17,7 @@ import { useApp } from '@/features/app/AppState';
 import { newId } from '@/features/app/dates';
 import { ColorPicker } from '@/features/me/pickers';
 import { ItemTile, itemIcon } from '@/features/wardrobe/visuals';
+import { pickFromLibrary, processPhoto, takePhoto, type PickResult } from '@/services/photos/capture';
 import type { TKey } from '@/i18n';
 import { Button, Card, Chip, Row, Screen, T } from '@/ui/components';
 import { space } from '@/ui/theme';
@@ -28,10 +29,13 @@ const DEFAULT_WARMTH: Partial<Record<Subcategory, Warmth>> = {
   dress: 2, cardigan: 2, raincoat: 2, jacket: 3, coat: 4, puffer: 5, sandals: 1, sneakers: 2, shoes: 2, boots: 4,
 };
 
-/** Add or edit a clothing item. Photo capture comes in Phase 3 (needs the camera permission — owner approval). */
+/** Add or edit a clothing item, optionally with a photo (Phase 3; camera permission approved by the owner 2026-11-17, D-042). */
 export default function ItemEditor() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { t, items, upsertItem, deleteItem } = useApp();
+  const { t, items, upsertItem, deleteItem, photos, profile, updateProfile } = useApp();
+  const [photoState, setPhotoState] = useState<'idle' | 'intro' | 'working' | 'denied' | 'deniedForever' | 'failed'>('idle');
+  /** Photo replaced or added in this session but not saved yet (removed again on cancel). */
+  const [draftPhoto, setDraftPhoto] = useState<string | null>(null);
   const c = useTheme();
   const existing = items.find((i) => i.id === id);
   const [item, setItem] = useState<ClothingItem>(
@@ -60,7 +64,41 @@ export default function ItemEditor() {
 
   const save = async () => {
     await upsertItem(item);
+    setDraftPhoto(null);
     router.back();
+  };
+
+  // Leaving without saving: drop a photo that was taken for this unsaved edit.
+  const draftPhotoRef = useRef<string | null>(null);
+  useEffect(() => {
+    draftPhotoRef.current = draftPhoto;
+  }, [draftPhoto]);
+  useEffect(
+    () => () => {
+      if (draftPhotoRef.current) void photos.remove(draftPhotoRef.current);
+    },
+    [photos],
+  );
+
+  const applyPhoto = async (pick: () => Promise<PickResult>) => {
+    setPhotoState('working');
+    try {
+      const res = await pick();
+      if (res.kind === 'denied') return setPhotoState(res.canAskAgain ? 'denied' : 'deniedForever');
+      if (res.kind === 'canceled') return setPhotoState('idle');
+      const { photoUri, colors } = await processPhoto(res.uri, photos);
+      if (draftPhoto) await photos.remove(draftPhoto);
+      setDraftPhoto(photoUri);
+      setItem((x) => ({ ...x, photoUri, colors: x.colors.length ? x.colors : colors }));
+      setPhotoState('idle');
+    } catch {
+      setPhotoState('failed');
+    }
+  };
+
+  const camera = () => {
+    if (!profile?.cameraIntroSeen) return setPhotoState('intro');
+    void applyPhoto(takePhoto);
   };
 
   const toggle = (label: string, value: boolean, onChange: (v: boolean) => void) => (
@@ -73,8 +111,46 @@ export default function ItemEditor() {
   return (
     <Screen>
       <View style={{ alignItems: 'center' }}>
-        <ItemTile item={item.colors.length ? item : { ...item, colors: ['grey'] }} size={140} />
+        <ItemTile item={item.colors.length ? item : { ...item, colors: ['grey'] }} size={160} />
       </View>
+
+      <Card>
+        <T variant="label">{t('photo.title')}</T>
+        <T variant="small" muted>
+          {t('photo.clothesOnly')}
+        </T>
+        {photoState === 'intro' ? (
+          <Card alt>
+            <T variant="heading">{t('photo.introTitle')}</T>
+            <T>{t('photo.introBody')}</T>
+            <Button
+              icon="📷"
+              label={t('photo.introOk')}
+              onPress={async () => {
+                await updateProfile({ cameraIntroSeen: true });
+                void applyPhoto(takePhoto);
+              }}
+            />
+            <Button kind="secondary" label={t('common.cancel')} onPress={() => setPhotoState('idle')} />
+          </Card>
+        ) : photoState === 'working' ? (
+          <ActivityIndicator color={c.primary} accessibilityLabel={t('photo.working')} />
+        ) : (
+          <Row wrap>
+            {Platform.OS !== 'web' && <Chip icon="📷" label={t('photo.take')} onPress={camera} />}
+            <Chip icon="🖼️" label={t('photo.choose')} onPress={() => void applyPhoto(pickFromLibrary)} />
+            {item.photoUri && <Chip icon="✖️" label={t('photo.remove')} onPress={() => set({ photoUri: undefined })} />}
+          </Row>
+        )}
+        {photoState === 'denied' && <T muted>{t('photo.denied')}</T>}
+        {photoState === 'deniedForever' && <T muted>{t('photo.deniedForever')}</T>}
+        {photoState === 'failed' && <T muted>{t('photo.failed')}</T>}
+        {item.photoUri && item.colors.length > 0 && draftPhoto && (
+          <T variant="small" muted>
+            {t('photo.colorsGuessed')}
+          </T>
+        )}
+      </Card>
 
       <Card>
         <T variant="label">{t('item.category')}</T>

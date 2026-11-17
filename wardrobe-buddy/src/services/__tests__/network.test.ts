@@ -52,10 +52,10 @@ describe('host allowlist', () => {
     await expect(safeFetchJson('https://api.open-meteo.com/x', { fetchImpl: fail })).rejects.toThrow('HTTP 429');
   });
 
-  it('no other file in src/ calls fetch, XMLHttpRequest or WebSocket', () => {
+  it('no other file in src/ calls fetch, XHR, WebSocket or file upload/download APIs', () => {
     const offenders = walk(SRC)
       .filter((f) => !f.endsWith(path.join('net', 'safeFetch.ts')))
-      .filter((f) => /\bfetch\s*\(|\.fetch\b|XMLHttpRequest|WebSocket|sendBeacon|EventSource|navigator\.sendBeacon/.test(fs.readFileSync(f, 'utf8')));
+      .filter((f) => /\bfetch\s*\(|\.fetch\b|XMLHttpRequest|WebSocket|sendBeacon|EventSource|createDownloadTask|createUploadTask|\.upload\s*\(|downloadAsync|uploadAsync/.test(fs.readFileSync(f, 'utf8')));
     expect(offenders).toEqual([]);
   });
 });

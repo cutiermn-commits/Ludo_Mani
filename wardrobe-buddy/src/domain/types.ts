@@ -106,6 +106,8 @@ export interface Profile {
    * false → the app makes no network calls at all and asks "What's it like outside?" instead.
    */
   weatherConsent: boolean;
+  /** She has seen the friendly explanation shown once before the camera permission prompt. */
+  cameraIntroSeen?: boolean;
 }
 
 export interface City {
