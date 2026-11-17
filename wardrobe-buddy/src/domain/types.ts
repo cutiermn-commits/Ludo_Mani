@@ -108,6 +108,10 @@ export interface Profile {
   weatherConsent: boolean;
   /** She has seen the friendly explanation shown once before the camera permission prompt. */
   cameraIntroSeen?: boolean;
+  /** Optional selfie, stored with the face area blurred (D-033, D-045). */
+  selfieUri?: string;
+  /** Show the selfie instead of the drawn avatar. */
+  useSelfie?: boolean;
 }
 
 export interface City {

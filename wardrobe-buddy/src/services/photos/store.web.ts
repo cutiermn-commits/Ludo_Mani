@@ -11,4 +11,8 @@ export const photoStore: PhotoStore = {
   },
   async remove() {},
   async removeAll() {},
+  async temp(bytes, mime) {
+    return `data:${mime};base64,${bytesToBase64(bytes)}`;
+  },
+  async discard() {},
 };

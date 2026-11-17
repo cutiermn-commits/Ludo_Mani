@@ -56,6 +56,7 @@ export async function processPhoto(sourceUri: string, store: PhotoStore): Promis
   const saved = await img.saveAsync({ format: SaveFormat.JPEG, compress: PHOTO_QUALITY, base64: true });
   if (!saved.base64) throw new Error('no image data');
   const photoUri = await store.save(stripJpegMetadata(base64ToBytes(saved.base64)));
+  await store.discard(sourceUri).catch(() => undefined); // picker's cache copy (may still carry EXIF)
 
   let colors: ColorName[] = [];
   try {
@@ -63,8 +64,10 @@ export async function processPhoto(sourceUri: string, store: PhotoStore): Promis
     t.resize({ width: THUMB, height: THUMB });
     const thumb = await (await t.renderAsync()).saveAsync({ format: SaveFormat.PNG, base64: true });
     if (thumb.base64) colors = detectColors(decodePng(base64ToBytes(thumb.base64)));
+    await store.discard(thumb.uri).catch(() => undefined);
   } catch {
     // Colour suggestion is a nice-to-have; she can always pick colours herself.
   }
+  await store.discard(saved.uri).catch(() => undefined); // manipulator's cache copy
   return { photoUri, colors };
 }

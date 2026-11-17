@@ -5,4 +5,8 @@ export interface PhotoStore {
   remove(uri: string): Promise<void>;
   /** Parent "delete everything". */
   removeAll(): Promise<void>;
+  /** A short-lived URI for intermediate image data (deleted with `discard`). */
+  temp(bytes: Uint8Array, mime: 'image/png' | 'image/jpeg'): Promise<string>;
+  /** Delete a temporary or picker-cache file. Never touches saved photos. */
+  discard(uri: string): Promise<void>;
 }

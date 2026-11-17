@@ -5,6 +5,7 @@ import type { StyleTag, ThemeMode } from '@/domain/types';
 import { summarizeLearning } from '@/engine';
 import { useApp } from '@/features/app/AppState';
 import { Avatar } from '@/features/me/Avatar';
+import { SelfieCard } from '@/features/me/SelfieCard';
 import { AvatarMaker, ColorPicker, LanguagePicker, StylePrefPicker, ThemePicker } from '@/features/me/pickers';
 import { useItemName } from '@/features/wardrobe/visuals';
 import type { TKey } from '@/i18n';
@@ -29,13 +30,19 @@ export default function Me() {
   return (
     <Screen>
       <Card style={{ alignItems: 'center' }}>
-        {editAvatar ? (
+        <Row wrap style={{ justifyContent: 'center' }}>
+          <Chip icon="🧍" label={t('selfie.useAvatar')} selected={!profile.useSelfie} onPress={() => updateProfile({ useSelfie: false })} />
+          <Chip icon="📸" label={t('selfie.usePhoto')} selected={!!profile.useSelfie} onPress={() => updateProfile({ useSelfie: true })} />
+        </Row>
+        {profile.useSelfie ? (
+          <SelfieCard value={profile.selfieUri} onChange={(selfieUri) => updateProfile({ selfieUri, useSelfie: !!selfieUri })} />
+        ) : editAvatar ? (
           <AvatarMaker value={profile.avatar} onChange={(avatar) => updateProfile({ avatar })} />
         ) : (
           <Avatar look={profile.avatar} size={170} label={t('avatar.preview')} />
         )}
         <T variant="title">{profile.nickname}</T>
-        <Button kind="secondary" label={editAvatar ? t('common.done') : t('me.editAvatar')} onPress={() => setEditAvatar(!editAvatar)} />
+        {!profile.useSelfie && <Button kind="secondary" label={editAvatar ? t('common.done') : t('me.editAvatar')} onPress={() => setEditAvatar(!editAvatar)} />}
       </Card>
 
       <Section title={t('me.learnedTitle')}>

@@ -24,4 +24,16 @@ export const photoStore: PhotoStore = {
     const dir = photosDir();
     if (dir.exists) dir.delete();
   },
+  async temp(bytes, mime) {
+    const file = new File(Paths.cache, `wb-tmp-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}.${mime === 'image/png' ? 'png' : 'jpg'}`);
+    file.create();
+    file.write(bytes);
+    return file.uri;
+  },
+  async discard(uri) {
+    // Only the cache folder: picker copies and our own temp files live there.
+    if (!uri.startsWith(Paths.cache.uri)) return;
+    const file = new File(uri);
+    if (file.exists) file.delete();
+  },
 };

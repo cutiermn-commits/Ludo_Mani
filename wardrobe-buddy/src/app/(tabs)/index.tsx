@@ -7,6 +7,7 @@ import { suggest, swapIn } from '@/engine';
 import { useApp, useTodayWeather } from '@/features/app/AppState';
 import { newId } from '@/features/app/dates';
 import { Avatar } from '@/features/me/Avatar';
+import { SelfieImage } from '@/features/me/SelfieCard';
 import { EXTRA_ICON, TIP_KEY, useWhyText } from '@/features/today/text';
 import { WeatherStrip } from '@/features/today/WeatherStrip';
 import { ItemTile, useItemName } from '@/features/wardrobe/visuals';
@@ -111,7 +112,11 @@ export default function Today() {
         <Card>
           <T variant="heading">{saved ? t('today.otherIdea') : t('today.suggestionTitle')}</T>
           <View style={{ flexDirection: 'row', gap: space.lg, alignItems: 'center' }}>
-            {showAvatar && <Avatar look={profile.avatar} outfit={current} size={170} label={t('avatar.wearing', { items: current.map(nameOf).join(', ') })} />}
+            {profile.useSelfie && profile.selfieUri ? (
+              <SelfieImage uri={profile.selfieUri} size={150} label={t('selfie.a11y')} />
+            ) : (
+              showAvatar && <Avatar look={profile.avatar} outfit={current} size={170} label={t('avatar.wearing', { items: current.map(nameOf).join(', ') })} />
+            )}
             <View style={{ flex: 1, gap: space.sm }}>
               <Row wrap style={{ alignItems: 'flex-start' }}>
                 {current.map((it) => (

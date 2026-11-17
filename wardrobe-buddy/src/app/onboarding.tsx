@@ -7,6 +7,7 @@ import { useApp } from '@/features/app/AppState';
 import { newId } from '@/features/app/dates';
 import { DEFAULT_AVATAR } from '@/features/me/Avatar';
 import { AvatarMaker, LanguagePicker, StylePrefPicker } from '@/features/me/pickers';
+import { SelfieCard } from '@/features/me/SelfieCard';
 import { ParentalGate } from '@/features/parent/ParentalGate';
 import { CitySearch } from '@/features/weather/CitySearch';
 import { Button, Card, Chip, Row, Screen, T } from '@/ui/components';
@@ -27,6 +28,7 @@ export default function Onboarding() {
   const [avatar, setAvatar] = useState<AvatarLook>(DEFAULT_AVATAR);
   const [city, setCity] = useState<City | undefined>();
   const [gatePassed, setGatePassed] = useState(false);
+  const [selfieUri, setSelfieUri] = useState<string | undefined>();
   const [consent, setConsent] = useState<boolean | null>(null);
 
   const index = STEPS.indexOf(step);
@@ -50,6 +52,8 @@ export default function Onboarding() {
       avatar,
       city: consent ? city : undefined,
       weatherConsent: consent === true,
+      selfieUri,
+      useSelfie: !!selfieUri,
     };
     await saveProfile(profile);
     router.replace('/wardrobe');
@@ -139,6 +143,7 @@ export default function Onboarding() {
         <Card>
           <T variant="heading">{t('onboarding.avatarTitle')}</T>
           <AvatarMaker value={avatar} onChange={setAvatar} />
+          <SelfieCard value={selfieUri} onChange={setSelfieUri} />
           <Button label={t('common.next')} onPress={next} />
         </Card>
       )}
