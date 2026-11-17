@@ -2,22 +2,22 @@
 // Caches ONLY this app's own files (same origin, under the base path). It never touches
 // other hosts (the weather service is not cached here; the app keeps its own 1-hour cache),
 // and it stores no personal data: profile, clothes and photos live in the app's storage.
-const CACHE = 'wb-5772fdc5983b';
+const CACHE = 'wb-a2618327d8b8';
 const BASE = '/Ludo_Mani/wardrobe';
 const PRECACHE = [
-  "/Ludo_Mani/wardrobe/_expo/static/js/web/[id]-4f2b5892aa9a62b23d4e6dc059266ed8.js",
-  "/Ludo_Mani/wardrobe/_expo/static/js/web/[outfitId]-485a6bfe7ef8a7d5fd408f7c7d90f12a.js",
-  "/Ludo_Mani/wardrobe/_expo/static/js/web/__common-e154c39e71d9bdbbe97a36097192eeb6.js",
+  "/Ludo_Mani/wardrobe/_expo/static/js/web/[id]-af8f7c41d13aefc5aab9396850ff2d6d.js",
+  "/Ludo_Mani/wardrobe/_expo/static/js/web/[outfitId]-e295314a8a789c9d24efe61b7be040f3.js",
+  "/Ludo_Mani/wardrobe/_expo/static/js/web/__common-0e3df01f0779552c8df92c5316845efd.js",
   "/Ludo_Mani/wardrobe/_expo/static/js/web/__expo-metro-runtime-ed4c1cfa6193d76fc294130e42bd1916.js",
   "/Ludo_Mani/wardrobe/_expo/static/js/web/_layout-18afc0b562fc5d176f150761db610b95.js",
-  "/Ludo_Mani/wardrobe/_expo/static/js/web/_layout-c0829913effecb2e48978a1df1a79060.js",
-  "/Ludo_Mani/wardrobe/_expo/static/js/web/entry-0714fba9302aa9d523a0037b2226fb27.js",
-  "/Ludo_Mani/wardrobe/_expo/static/js/web/index-139cd98f5bb4f04b70bd867082279534.js",
-  "/Ludo_Mani/wardrobe/_expo/static/js/web/me-3c5617d99133eb1a31e1cb0814eb1608.js",
-  "/Ludo_Mani/wardrobe/_expo/static/js/web/onboarding-cc6f9f2c9cfc337ac934e2446282316a.js",
-  "/Ludo_Mani/wardrobe/_expo/static/js/web/parent-7f33c82a2e1750b898fe4b9a7fd063f2.js",
-  "/Ludo_Mani/wardrobe/_expo/static/js/web/wardrobe-ce9d9d2d28c4e0a0b27cb79a3ec804e5.js",
-  "/Ludo_Mani/wardrobe/_expo/static/js/web/week-2322726ee7b017e963a4c3c3f443c29d.js",
+  "/Ludo_Mani/wardrobe/_expo/static/js/web/_layout-fa4ef2a9a176725f24ee55e02b28a360.js",
+  "/Ludo_Mani/wardrobe/_expo/static/js/web/entry-e6465923f4ca685cd1f11e946aa7fc50.js",
+  "/Ludo_Mani/wardrobe/_expo/static/js/web/index-e49e67c4b4f20edb7fad5fcfa7159dab.js",
+  "/Ludo_Mani/wardrobe/_expo/static/js/web/me-685090908ea8224186fdba7cf3c5fe73.js",
+  "/Ludo_Mani/wardrobe/_expo/static/js/web/onboarding-d5a232aa3ce699d4191056e75bcb9201.js",
+  "/Ludo_Mani/wardrobe/_expo/static/js/web/parent-cdb59792a58011e0d0c71604ef01bb93.js",
+  "/Ludo_Mani/wardrobe/_expo/static/js/web/wardrobe-d5d33247e4d6ddf4319553c2a3161ec4.js",
+  "/Ludo_Mani/wardrobe/_expo/static/js/web/week-ff3701cda43ee244c55ea6957d42baf6.js",
   "/Ludo_Mani/wardrobe/apple-touch-icon.png",
   "/Ludo_Mani/wardrobe/assets/node_modules/expo-router/assets/arrow_down.017bc6ba3fc25503e5eb5e53826d48a8.png",
   "/Ludo_Mani/wardrobe/assets/node_modules/expo-router/assets/error.d1ea1496f9057eb392d5bbf3732a61b7.png",

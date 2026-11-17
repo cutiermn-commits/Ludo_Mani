@@ -1,6 +1,6 @@
 # Copy review: Danish and English (D-011)
 
-Generated from `src/i18n/*.json` by `scripts/copy-review.mjs`. 321 strings.
+Generated from `src/i18n/*.json` by `scripts/copy-review.mjs`. 322 strings.
 
 For the reviewer: read the Danish column aloud. Is it natural for an 11–15-year-old in Denmark? Mark anything odd in the "Note" column. `{name}` placeholders are filled in by the app. Things to check especially: item names ("hættetrøje i grå"), the "Why this?" sentences (`why.*`), and words kept the same as English (beige, jeans, Sporty).
 
@@ -251,8 +251,9 @@ For the reviewer: read the Danish column aloud. Is it natural for an 11–15-yea
 | `parent.deleteAll` | Delete everything | Slet alt | |
 | `parent.deleteConfirm` | This deletes the profile, wardrobe and ratings on this device. It cannot be undone. | Dette sletter profil, garderobe og bedømmelser på denne enhed. Det kan ikke fortrydes. | |
 | `parent.deleteYes` | Yes, delete everything | Ja, slet alt | |
-| `parent.export` | Export data (JSON) | Eksportér data (JSON) | |
-| `parent.exportNote` | On a phone the file has the data but not the photos. On the web the file includes the photos (selfies are blurred). Keep it private. | På en telefon indeholder filen data, men ikke billederne. På nettet indeholder filen også billederne (selfies er slørede). Hold den privat. | |
+| `parent.export` | Export data and photos | Eksportér data og billeder | |
+| `parent.exportNote` | One file with all data and photos (selfies and diary photos stay blurred). On a phone you choose where to save it; on the web it downloads. Keep it private. | Én fil med alle data og billeder (selfies og dagbogsbilleder forbliver slørede). På en telefon vælger du, hvor den skal gemmes; på nettet bliver den downloadet. Hold den privat. | |
+| `parent.exportUnavailable` | Sharing is not available on this device. | Deling er ikke tilgængelig på denne enhed. | |
 | `parent.learningReset` | Done. The app starts learning from scratch. | Færdig. Appen begynder at lære forfra. | |
 | `parent.open` | Grown-up settings | Indstillinger for voksne | |
 | `parent.privacyBody` | The only internet requests are weather lookups (if allowed above): the town and the device's internet address go to Open-Meteo. No name, age or photos are ever sent. | De eneste forbindelser til internettet er vejropslag (hvis det er tilladt ovenfor): byen og enhedens internetadresse sendes til Open-Meteo. Navn, alder og billeder sendes aldrig. | |

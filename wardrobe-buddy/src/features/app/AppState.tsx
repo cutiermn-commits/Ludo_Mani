@@ -6,6 +6,8 @@ import { createRepository, emptyAppData, type AppData } from '@/data/repository'
 import type { City, ClothingItem, DiaryPhoto, Locale, Mood, Outfit, Profile, Rating, WeatherDay } from '@/domain/types';
 import { applyRating, initialLearning, pruneLearning } from '@/engine';
 import { detectLocale, translate, type TKey, type TParams } from '@/i18n';
+import { buildExport } from '@/services/export/buildExport';
+import { readPhotoAsDataUri } from '@/services/export/share';
 import { photoStore as devicePhotoStore } from '@/services/photos/store';
 import type { PhotoStore } from '@/services/photos/types';
 import { loadForecast, type ForecastOutcome } from '@/services/weather/cache';
@@ -205,7 +207,7 @@ export function AppProvider({
         await photos.purgeCaches();
         setState((s) => ({ ...s, ...emptyAppData(), mood: undefined, manualToday: null, weatherStatus: 'idle' }));
       },
-      exportJson: () => repo.exportJson(),
+      exportJson: async () => buildExport(await repo.load(), readPhotoAsDataUri, new Date()),
       photos,
       refreshWeather,
       setMood: (mood) => setState((s) => ({ ...s, mood })),

@@ -17,7 +17,7 @@ const SUB_ICON: Partial<Record<Subcategory, string>> = {
   jeans: '👖',
   trousers: '👖',
   shorts: '🩳',
-  skirt: '🩱',
+  skirt: '👗',
   leggings: '👖',
   dress: '👗',
   raincoat: '🧥',

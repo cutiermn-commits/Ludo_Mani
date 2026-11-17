@@ -1,10 +1,12 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Platform, Share, Switch } from 'react-native';
+import { Switch } from 'react-native';
 
 import { useApp } from '@/features/app/AppState';
+import { todayISO } from '@/features/app/dates';
 import { ParentalGate } from '@/features/parent/ParentalGate';
 import { CitySearch } from '@/features/weather/CitySearch';
+import { shareExport } from '@/services/export/share';
 import { Button, Card, Row, Screen, Section, T } from '@/ui/components';
 
 /** Parent area. Everything here sits behind the gate (PRIVACY_SAFETY §2.5); the gate resets every visit. */
@@ -24,18 +26,8 @@ export default function Parent() {
 
   const doExport = async () => {
     const json = await exportJson();
-    if (Platform.OS === 'web') {
-      // Web: download a file locally; nothing is uploaded.
-      const blob = new Blob([json], { type: 'application/json' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'wardrobe-buddy-export.json';
-      a.click();
-      URL.revokeObjectURL(a.href);
-    } else {
-      // Native: the OS share sheet, opened only by the parent behind the gate.
-      await Share.share({ message: json, title: 'wardrobe-buddy-export.json' });
-    }
+    const ok = await shareExport(json, `wardrobe-buddy-${todayISO()}.json`, t('parent.export'));
+    if (!ok) setDone(t('parent.exportUnavailable'));
   };
 
   return (

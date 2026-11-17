@@ -41,6 +41,10 @@
       "network": "none",
       "why": "navigation (AGENTS.md)"
     },
+    "expo-sharing": {
+      "network": "none (grep: no fetch/XHR in build/); opens the OS share sheet only when the parent taps Export behind the gate",
+      "why": "parent export of data + photos (PRIVACY_SAFETY §2.9, Phase 8)"
+    },
     "expo-splash-screen": {
       "network": "none",
       "why": "splash"

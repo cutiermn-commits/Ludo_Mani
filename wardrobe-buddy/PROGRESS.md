@@ -13,7 +13,7 @@ _Last updated: 2026-11-17 (Claude Code)_
 | 5. Today + Week | ✅ Done | Weather card, mood picker, avatar wearing the outfit, swap tabs, "Why this?", don't-forget chips; Week days expand to show why + what to remember. Exit test: 120 items, today + 7-day plan well under 2 s |
 | 6. Rating + learning | ✅ Done (device test pending) | Stars + reason chips, "I wore this", learning shown in Me + reset; **outfit diary photo** (blurred like selfies, optional, from the rating screen) and "My outfit diary" in Me. Exit: ratings change the next suggestion (engine test) |
 | 7. Polish | ✅ Done (device test pending) | Outfit "drops in" on change (off with reduced motion), haptics on choices (expo-haptics), a11y test over every screen (roles, labels, images), WCAG AA contrast test, Danish copy review list `docs/COPY_REVIEW.md` (D-011) |
-| 8. Release prep | ⬜ Not started | |
+| 8. Release prep | 🟢 Drafts ready, **owner approval needed** | Export now includes all photos (one JSON file, shared via the OS share sheet / downloaded on web); draft privacy policies kid + parent, DA + EN (`docs/legal/`); Google Play listing DA + EN, Data safety + target audience + rating answers (`docs/store/`); 8 store screenshots from demo data; release-checklist report `docs/RELEASE_CHECKLIST.md`. Nothing submitted or published |
 
 ## What she can do now (5-line note)
 1. Pick Dansk/English; a grown-up answers the maths gate; she picks a nickname, age band, style, avatar and town.

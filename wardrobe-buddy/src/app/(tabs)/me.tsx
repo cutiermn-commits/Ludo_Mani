@@ -24,7 +24,7 @@ export default function Me() {
   const likedNames = learned.likedItemIds.map((id) => items.find((i) => i.id === id)).filter((i) => !!i).map((i) => nameOf(i!));
   const learnedLines: string[] = [];
   if (likedNames.length) learnedLines.push(t('me.learnedItems', { items: likedNames.join(t('me.and')) }));
-  if (learned.likedTags.length) learnedLines.push(t('me.learnedTags', { tags: learned.likedTags.map((x: StyleTag) => t(`tag.${x}` as TKey)).join(t('me.and')) }));
+  if (learned.likedTags.length) learnedLines.push(t('me.learnedTags', { tags: learned.likedTags.map((x: StyleTag) => t(`tag.${x}` as TKey).toLocaleLowerCase(locale)).join(t('me.and')) }));
   if (learned.runsCold) learnedLines.push(t('me.learnedCold'));
   if (learned.runsWarm) learnedLines.push(t('me.learnedWarm'));
 
