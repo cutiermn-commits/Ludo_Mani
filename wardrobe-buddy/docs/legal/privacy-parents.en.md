@@ -1,15 +1,15 @@
-> **DRAFT, not published.** Needs the owner's approval and a legal review before it goes online (D-009). Fill in the [bracketed] parts. Written 2026-11-17 to match what the app does in this version.
+> **DRAFT, not published.** Needs the owner's approval and a legal review before it goes online (D-009). Fill in the [bracketed] parts. Updated 2026-11-18 for the simple version (D-061–D-065).
 
 # Wardrobe Buddy privacy policy (for parents)
 
 **Who we are.** Wardrobe Buddy is a free, non-profit app made by [owner name / organisation], [country]. Contact: [contact email]. There are no ads, purchases or subscriptions.
 
 **What the app stores, and where.** Everything below is stored **only on your child's device** (on the web: only in that browser). We, the developer, never receive it:
-- a nickname (no real name), an age band (11–12 or 13–15), style and colour preferences, "runs cold/warm", theme and language;
+- a nickname (no real name), an age band (11–12 or 13–15), the drawn avatar (skin, hair and eye colour, hairstyle, extras, and a height and shape picked from three drawings each: no measurements or numbers), theme and language;
 - the town chosen for the weather (and the last forecast, cached for about an hour) and any school dress rules typed in;
 - clothing items with optional photos (resized on the device; photo location and other metadata removed) and, where it works, a cut-out of the garment without its background, which the drawn avatar wears;
-- an optional selfie and optional outfit-diary photos. The top part of each photo, where a face usually is, is blurred before saving (there is no automatic face detection; your child can blur the whole photo), and the unblurred original is never saved;
-- outfits, ratings and what the app has learned from them.
+- an optional full-body photo of your child, used to try clothes on. [D-063: during the test period this photo is NOT blurred; the rule for the released app is to be decided.] Metadata is removed. To place the clothes, the device itself finds the shoulders, hips and feet in the photo with a pose model that runs inside the app (MoveNet, by Google, used offline); only those six points are stored, and nothing is sent anywhere. [Legal review: whether these points count as biometric data under GDPR Art. 4(14); they are not used to identify anyone.];
+- the clothes chosen for each day, and any position tweaks for each garment.
 
 The app has no accounts, no analytics, no advertising or crash-reporting tools, no social features and no links to shops. On Android, cloud backup of the app's data is switched off. On iPhone, app data may be included in your iCloud device backup [to be checked before the iOS release: NOT VERIFIED].
 
@@ -19,6 +19,6 @@ The app has no accounts, no analytics, no advertising or crash-reporting tools, 
 
 **Children.** Set-up is done together with a parent, behind a parental gate (a maths question). The gate also protects the town, the weather setting, export and delete.
 
-**Your choices and rights.** In the grown-up settings you can export all data and photos as one file, reset what the app has learned, switch weather lookups off, or delete everything. Uninstalling the app (or clearing the site's data in the browser) removes all data. Because we never receive the data, we cannot see, correct or delete it for you; you have full control on the device. [Legal review: confirm the GDPR position for an on-device-only app and Denmark's age of digital consent (D-009).]
+**Your choices and rights.** In the grown-up settings you can export all data and photos as one file, switch weather lookups off, or delete everything. Uninstalling the app (or clearing the site's data in the browser) removes all data. Because we never receive the data, we cannot see, correct or delete it for you; you have full control on the device. [Legal review: confirm the GDPR position for an on-device-only app and Denmark's age of digital consent (D-009).]
 
 **Changes.** We will update this page if the app changes how it handles data. Last updated: [date].

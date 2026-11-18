@@ -172,3 +172,41 @@ Format: ID · date · decision · why · alternatives · status. Claude Code add
   - **The avatar:** its geometry (`avatarBody.ts`) produces a pose too, so the avatar is dressed by exactly the same rules as her photo.
   - **Fine-tuning:** she can move a piece or make it bigger or smaller (`ClothingItem.fit`, in shoulder-widths). The adjustment is kept per garment and reset when the photo changes.
   - **Limits:** this is a flat overlay, not a simulation of fabric, and the factors are ASSUMPTION starting values tuned on test pictures.
+- **D-066 · D-061–D-065 review fixes (privacy audit + architecture review, 2026-11-18).** Neither review found a way for the photo, the body points or any other data to leave the device.
+
+  **Fixed:**
+  - **Permission texts:** no longer promise "your face is blurred" (test).
+  - **WebView diagnostics off:** `android.webkit.WebView.MetricsOptOut` is set in the Android manifest by `plugins/withWebViewPrivacy.js`. VERIFIED in `expo config --type introspect`. Source: developer.android.com, Managing WebView objects.
+  - **Release gate:** a test keeps the D-063 blocker open in the release checklist, the release skill and the parent policy draft while `BODY_PHOTO_BLURRED` is false.
+  - **Drafts rewritten** for the simple flow, still unpublished: the kid and parent policies (DA and EN), the Play listing and the data-safety draft. Open legal question: whether the six pose points count as biometric data (GDPR Art. 4(14)).
+  - **PRIVACY_SAFETY.md** records the approved exceptions (D-062, D-063).
+  - **Copy:**
+    - The photo tip now says "wear your normal clothes, ask a grown-up to take it".
+    - "Take everything off" is now "Clear my outfit".
+    - Height, shape and hip words are allowed only in the avatar picker and point marking (test).
+  - **Pose page and host:**
+    - The CSP adds `form-action 'none'; base-uri 'none'`.
+    - Tests check that the page never navigates or fetches, and that it is built from the vendored model (sha256 plus content).
+    - The phone view accepts only `file://` loads (`isLocalFile`); an exact URI match could break if the platform normalises it.
+    - A dead WebView process now unmounts.
+    - Timeouts are 15 s for the page to load and 20 s per run, down from 60 s.
+    - The idle unload re-arms while a run is busy.
+    - A technical failure gets its own message and opens tap-marking straight away.
+    - A slow result for an older photo is ignored.
+    - "Find me" passes the photo's real shape.
+  - **Web cache:** the service worker keeps the pose page in its own `pose-page` cache (newest copy only), so a deploy doesn't mean another 6.8 MB download.
+  - **Fit and display code:**
+    - Fine-tuning is a pure `nudgeFit` (clamped, tested) applied with a new `updateItem`, which reads the latest stored item, so quick taps don't get lost.
+    - The dress rule lives in one place (`visibleWorn`).
+    - The SVG gradient ids are unique per avatar.
+  - **Old data:** a pre-D-063 blurred head selfie (no `photoAspect`) is dropped on load (`migrateProfile`, tested), and the start-up sweep deletes the file.
+  - **Parent screen:** "Reset learning" is removed, since nothing learns any more.
+
+  **Accepted or open:**
+  - react-native-webview's manifest `<queries>` for Chromium PAY intents. They are unused, and removing them needs a manifest merge rule; to be revisited before release.
+  - Base64 over web `postMessage` (minor).
+  - The engine, rating and learning code and their i18n keys are parked, not deleted (ARCHITECTURE.md).
+  - **NOT VERIFIED until a phone test:**
+    - the native WebView path end to end (`Asset.loadAsync` gives a `file://` copy, load time, memory)
+    - whether a service worker serves a sandboxed iframe offline
+    - the current Google Play Families policy text (its host is not allowed in this session)

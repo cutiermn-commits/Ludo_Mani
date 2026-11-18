@@ -5,6 +5,7 @@
 const CACHE = 'wb-__VERSION__';
 const BASE = '__BASE__';
 const PRECACHE = __FILES__;
+const POSE_CACHE = 'pose-page';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
@@ -41,16 +42,22 @@ self.addEventListener('fetch', (event) => {
   // The offline pose page (D-064) loads in a hidden frame: hashed name, so cache it on first use.
   if (req.destination === 'iframe' && /\/pose\.[0-9a-f]+\.html$/.test(url.pathname)) {
     event.respondWith(
-      caches.match(req).then(
-        (hit) =>
-          hit ||
-          fetch(req).then((res) => {
-            if (res.ok) {
-              const copy = res.clone();
-              caches.open(CACHE).then((c) => c.put(req, copy));
-            }
-            return res;
-          }),
+      // Its own cache, outside the per-deploy "wb-" caches, so a new deploy doesn't mean another
+      // 6.8 MB download; only the newest pose page is kept. It holds no personal data.
+      caches.open(POSE_CACHE).then((c) =>
+        c.match(req).then(
+          (hit) =>
+            hit ||
+            fetch(req).then((res) => {
+              if (res.ok) {
+                const copy = res.clone();
+                c.keys()
+                  .then((keys) => Promise.all(keys.filter((k) => k.url !== req.url).map((k) => c.delete(k))))
+                  .then(() => c.put(req, copy));
+              }
+              return res;
+            }),
+        ),
       ),
     );
     return;

@@ -31,7 +31,7 @@ try {
   const js = res.outputFiles[0].text.replace(/<\/script/gi, '<\\/script');
   const html = `<!doctype html>
 <html><head><meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; form-action 'none'; base-uri 'none'">
 <meta name="referrer" content="no-referrer">
 <title>Wardrobe Buddy pose</title>
 <!-- Body-pose model: MoveNet SinglePose Lightning v4 by Google (Apache-2.0, tfhub.dev/google/movenet/singlepose/lightning/4),

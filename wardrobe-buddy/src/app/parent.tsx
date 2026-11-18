@@ -9,7 +9,7 @@ import { Button, Card, Row, Screen, Section, T } from '@/ui/components';
 
 /** Parent area. Everything here sits behind the gate (PRIVACY_SAFETY §2.5); the gate resets every visit. */
 export default function Parent() {
-  const { t, profile, updateProfile, resetLearning, deleteEverything, exportAll } = useApp();
+  const { t, profile, updateProfile, deleteEverything, exportAll } = useApp();
   const [open, setOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [done, setDone] = useState<string | null>(null);
@@ -68,14 +68,6 @@ export default function Parent() {
           <T variant="small" muted>
             {t('parent.exportNote')}
           </T>
-          <Button
-            kind="secondary"
-            label={t('parent.resetLearning')}
-            onPress={async () => {
-              await resetLearning();
-              setDone(t('parent.learningReset'));
-            }}
-          />
           {!confirmDelete ? (
             <Button kind="danger" label={t('parent.deleteAll')} onPress={() => setConfirmDelete(true)} />
           ) : (

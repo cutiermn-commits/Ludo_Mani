@@ -1,9 +1,9 @@
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import { Image, View } from 'react-native';
 import Svg, { Circle, Defs, Ellipse, G, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 import { avatarBody, AVATAR_VIEW, type AvatarGeometry } from '@/domain/fit/avatarBody';
-import { placeGarments } from '@/domain/fit/place';
+import { placeGarments, visibleWorn } from '@/domain/fit/place';
 import type { AvatarLook, ClothingItem, HairStyle } from '@/domain/types';
 import { CLOTHING_HEX } from '@/ui/theme';
 
@@ -32,6 +32,8 @@ const shade = (hex: string, f: number) => {
 
 export function Avatar({ look, outfit = [], size = 260, label }: { look: AvatarLook; outfit?: ClothingItem[]; size?: number; label: string }) {
   const g = avatarBody(look);
+  // Unique per avatar: several avatars on one web page must not share SVG ids.
+  const shadeId = `skin${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   const u = size / AVATAR_VIEW.h;
   const skin = SKIN_TONES[look.skin] ?? SKIN_TONES[2];
   const hair = HAIR_COLORS[look.hair] ?? HAIR_COLORS[2];
@@ -39,7 +41,7 @@ export function Avatar({ look, outfit = [], size = 260, label }: { look: AvatarL
   const garments = placeGarments(outfit, g.pose);
   const cut = new Set(garments.map((x) => x.category));
   // Items she wears that have no cut-out are drawn as simple garment shapes in their colour.
-  const drawn = outfit.filter((i) => !i.cutoutUri && !(outfit.some((d) => d.category === 'dress') && (i.category === 'top' || i.category === 'bottom')));
+  const drawn = visibleWorn(outfit).filter((i) => !i.cutoutUri);
   const view = `0 0 ${AVATAR_VIEW.w} ${AVATAR_VIEW.h}`;
   const w = AVATAR_VIEW.w * u;
 
@@ -47,7 +49,7 @@ export function Avatar({ look, outfit = [], size = 260, label }: { look: AvatarL
     <View accessible={!!label} accessibilityRole={label ? 'image' : undefined} accessibilityLabel={label || undefined} importantForAccessibility={label ? 'auto' : 'no-hide-descendants'} style={{ width: w, height: size }}>
       <Svg width={w} height={size} viewBox={view} style={{ position: 'absolute' }}>
         <Defs>
-          <LinearGradient id="skinShade" x1="0" y1="0" x2="1" y2="0">
+          <LinearGradient id={shadeId} x1="0" y1="0" x2="1" y2="0">
             <Stop offset="0" stopColor={shade(skin, 0.92)} />
             <Stop offset="0.5" stopColor={skin} />
             <Stop offset="1" stopColor={shade(skin, 0.92)} />
@@ -55,7 +57,7 @@ export function Avatar({ look, outfit = [], size = 260, label }: { look: AvatarL
         </Defs>
         <Ellipse cx={g.cx} cy={g.floor + 2} rx={34 * g.hf} ry={5} fill="#000" opacity={0.08} />
         <HairBack g={g} style={look.hairStyle} color={hair} />
-        <Body g={g} skin={skin} />
+        <Body g={g} skin={skin} shadeId={shadeId} />
         <BaseClothes g={g} hideTop={cut.has('top') || cut.has('dress')} hideShorts={cut.has('bottom') || cut.has('dress')} hideShoes={cut.has('shoes') || drawn.some((i) => i.category === 'shoes')} />
         {drawn.map((i) => (
           <DrawnGarment key={i.id} g={g} item={i} />
@@ -78,7 +80,7 @@ export function Avatar({ look, outfit = [], size = 260, label }: { look: AvatarL
   );
 }
 
-function Body({ g, skin }: { g: AvatarGeometry; skin: string }) {
+function Body({ g, skin, shadeId }: { g: AvatarGeometry; skin: string; shadeId: string }) {
   const { cx, shoulderY: sy, shoulderHalf: sh, waistY, waistHalf: wh, hipY, hipHalf: hh } = g;
   const arm = (side: -1 | 1) => {
     const x0 = cx + side * (sh - g.armW * 0.35);
@@ -109,7 +111,7 @@ function Body({ g, skin }: { g: AvatarGeometry; skin: string }) {
       <Rect x={cx - 5.5 * g.hf} y={g.neckTop} width={11 * g.hf} height={sy - g.neckTop + 4} fill={skin} />
       <Path
         d={`M${cx - sh},${sy + 6} Q${cx - sh},${sy - 2} ${cx - sh + 9},${sy - 3} L${cx + sh - 9},${sy - 3} Q${cx + sh},${sy - 2} ${cx + sh},${sy + 6} L${cx + wh},${waistY} L${cx + hh},${hipY} L${cx - hh},${hipY} L${cx - wh},${waistY} Z`}
-        fill="url(#skinShade)"
+        fill={`url(#${shadeId})`}
       />
     </G>
   );

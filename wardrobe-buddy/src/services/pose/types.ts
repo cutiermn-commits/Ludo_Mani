@@ -19,7 +19,10 @@ export function useRunPose(): RunPose {
  * Shared message handling for both hosts: one request at a time is fine (a photo every few minutes).
  * `send(target, json)` delivers to the page; the host attaches the page (WebView or iframe) when it mounts.
  */
-export function createPoseChannel<Target>(send: (target: Target, json: string) => void, timeoutMs = 60000) {
+/** ASSUMPTION starting values: long enough for a slow phone, short enough that she isn't left waiting. */
+export const POSE_TIMEOUTS = { readyMs: 15000, runMs: 20000 } as const;
+
+export function createPoseChannel<Target>(send: (target: Target, json: string) => void, runMs: number = POSE_TIMEOUTS.runMs, readyMs: number = POSE_TIMEOUTS.readyMs) {
   let target: Target | null = null;
   let seq = 0;
   const pending = new Map<number, { resolve: (kp: number[]) => void; reject: (e: Error) => void; timer: ReturnType<typeof setTimeout> }>();
@@ -60,7 +63,7 @@ export function createPoseChannel<Target>(send: (target: Target, json: string) =
       // A page that never loads must not hang the app.
       let wait: ReturnType<typeof setTimeout> | undefined;
       try {
-        await Promise.race([ready, new Promise<never>((_, rej) => (wait = setTimeout(() => rej(new Error('pose page did not load')), timeoutMs)))]);
+        await Promise.race([ready, new Promise<never>((_, rej) => (wait = setTimeout(() => rej(new Error('pose page did not load')), readyMs)))]);
       } finally {
         clearTimeout(wait);
       }
@@ -69,7 +72,7 @@ export function createPoseChannel<Target>(send: (target: Target, json: string) =
         const timer = setTimeout(() => {
           pending.delete(id);
           reject(new Error('pose timeout'));
-        }, timeoutMs);
+        }, runMs);
         pending.set(id, { resolve, reject, timer });
         if (!target) {
           pending.delete(id);

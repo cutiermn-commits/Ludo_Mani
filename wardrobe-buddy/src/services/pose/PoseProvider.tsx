@@ -11,6 +11,12 @@ import { createPoseChannel, PoseContext, type RunPose } from './types';
 type WebViewHandle = { injectJavaScript: (script: string) => void };
 const HiddenWebView = WebView as unknown as ComponentType<WebViewProps & { ref?: Ref<WebViewHandle> }>;
 
+/**
+ * Only local files may load in the hidden view: never a web address. (An exact match on the URI
+ * could fail if the platform normalises it; NOT VERIFIED on a device, architecture review.)
+ */
+export const isLocalFile = (url: string) => /^file:\/\//i.test(url);
+
 /** How long the hidden page stays loaded after the last use (it holds ~25 MB of model in memory). ASSUMPTION. */
 const IDLE_MS = 20000;
 
@@ -19,7 +25,9 @@ const IDLE_MS = 20000;
  * (D-064). The WebView's JavaScript engine has a JIT, so MoveNet takes seconds instead of the
  * ~15–40 s it would take on the app's own engine (measured in a JIT-less run, 2026-11-18).
  * The page is a bundled file: it loads nothing else and its CSP blocks all network requests;
- * navigation away from it is refused here as well.
+ * navigation to anything but a local file is refused here as well.
+ * NOT VERIFIED on a device yet: that `Asset.loadAsync` gives a `file://` copy in a release APK, and
+ * the time to load the 6.8 MB page on a mid-range Android (D-064).
  */
 export function PoseProvider({ children }: { children: ReactNode }) {
   const [uri, setUri] = useState<string | null>(null);
@@ -50,11 +58,17 @@ export function PoseProvider({ children }: { children: ReactNode }) {
       try {
         return await channel.run(bytesToBase64(input));
       } finally {
-        idle.current = setTimeout(() => {
-          if (channel.busy) return;
+        // Unload the page (and its model memory) once nothing has used it for a while.
+        const close = () => {
+          if (channel.busy) {
+            idle.current = setTimeout(close, IDLE_MS);
+            return;
+          }
           setActive(false);
           channel.reset();
-        }, IDLE_MS);
+        };
+        if (idle.current) clearTimeout(idle.current);
+        idle.current = setTimeout(close, IDLE_MS);
       }
     },
     [channel, uri],
@@ -69,7 +83,7 @@ export function PoseProvider({ children }: { children: ReactNode }) {
             ref={(v: WebViewHandle | null) => channel.attach(v)}
             source={{ uri }}
             originWhitelist={['file://*']}
-            onShouldStartLoadWithRequest={(r: { url: string }) => r.url === uri}
+            onShouldStartLoadWithRequest={(r: { url: string }) => isLocalFile(r.url)}
             allowFileAccess
             allowingReadAccessToURL={uri}
             javaScriptEnabled
@@ -77,7 +91,10 @@ export function PoseProvider({ children }: { children: ReactNode }) {
             incognito
             setSupportMultipleWindows={false}
             onMessage={(e: WebViewMessageEvent) => channel.receive(e.nativeEvent.data)}
-            onContentProcessDidTerminate={() => channel.reset()}
+            onContentProcessDidTerminate={() => {
+              channel.reset();
+              setActive(false);
+            }}
             onRenderProcessGone={() => {
               channel.reset();
               setActive(false);

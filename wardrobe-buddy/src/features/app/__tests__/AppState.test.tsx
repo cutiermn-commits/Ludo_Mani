@@ -100,7 +100,7 @@ describe('photo files (Phase 6 diary + start-up sweep)', () => {
     };
     const storage = createMemoryStorage({
       'wb:v1:items': JSON.stringify([{ id: 'a', category: 'top', colors: ['red'], warmth: 1, waterproof: false, windproof: false, styleTags: [], occasions: [], favorite: false, inLaundry: false, createdAt: 'x', photoUri: 'file:///p/item.jpg' }]),
-      'wb:v1:profile': JSON.stringify(profile({ selfieUri: 'file:///p/selfie.jpg' })),
+      'wb:v1:profile': JSON.stringify(profile({ selfieUri: 'file:///p/selfie.jpg', photoAspect: 0.75 })),
       'wb:v1:diary': JSON.stringify([{ id: 'd1', outfitId: 'o1', photoUri: 'file:///p/diary.jpg', faceBlurred: true }]),
     });
     const wrapper = ({ children }: { children: ReactNode }) => (

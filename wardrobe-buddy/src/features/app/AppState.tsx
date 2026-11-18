@@ -35,6 +35,8 @@ interface AppActions {
   saveProfile: (p: Profile) => Promise<void>;
   updateProfile: (patch: Partial<Profile>) => Promise<void>;
   upsertItem: (item: ClothingItem) => Promise<void>;
+  /** Change a saved item from its LATEST stored state (quick repeated taps never build on a stale copy). */
+  updateItem: (id: string, change: (item: ClothingItem) => ClothingItem) => Promise<void>;
   deleteItem: (id: string) => Promise<void>;
   saveOutfit: (o: Outfit) => Promise<void>;
   rateOutfit: (r: Rating) => Promise<void>;
@@ -170,6 +172,15 @@ export function AppProvider({
         // Only after the item is saved: delete the photo and cut-out it no longer uses.
         if (old?.photoUri && old.photoUri !== item.photoUri) await photos.remove(old.photoUri);
         if (old?.cutoutUri && old.cutoutUri !== item.cutoutUri) await photos.remove(old.cutoutUri);
+      },
+      updateItem: async (id, change) => {
+        const cur = ref.current.items.find((i) => i.id === id);
+        if (!cur) return;
+        const next = change(cur);
+        await patch(
+          'items',
+          ref.current.items.map((i) => (i.id === id ? next : i)),
+        );
       },
       deleteItem: async (id) => {
         const gone = ref.current.items.find((i) => i.id === id);

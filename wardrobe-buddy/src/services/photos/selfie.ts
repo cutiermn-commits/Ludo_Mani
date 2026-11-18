@@ -13,6 +13,12 @@ const SELFIE_WIDTH = 360;
 /** Full-body photo for trying clothes on: big enough to look good, small for browser storage. ASSUMPTION. */
 const BODY_WIDTH = Platform.OS === 'web' ? 420 : 720;
 
+/**
+ * Release gate (D-063): false during the owner's test period. A test keeps the store-release blocker
+ * open in docs/RELEASE_CHECKLIST.md while this is false.
+ */
+export const BODY_PHOTO_BLURRED = false;
+
 /** Full-body photo of herself (D-063). Back camera: someone else takes it, or she picks a mirror photo. */
 export const pickBodyPhoto = (source: 'camera' | 'library'): Promise<PickResult> => pickImage(source, { aspect: [3, 4] });
 

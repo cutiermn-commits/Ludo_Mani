@@ -41,12 +41,23 @@ async function read<T>(s: StorageAdapter, key: string, fallback: T): Promise<T> 
   }
 }
 
+/**
+ * Profiles from before D-063 have a small blurred head-and-shoulders selfie in `selfieUri` (no
+ * `photoAspect`). It can't be used to try clothes on, so it is dropped; the start-up sweep then
+ * deletes the file. Her avatar and everything else stay.
+ */
+export function migrateProfile(p: Profile | null): Profile | null {
+  if (!p || !p.selfieUri || p.photoAspect !== undefined) return p;
+  const { selfieUri: _old, ...rest } = p;
+  return { ...rest, useSelfie: false };
+}
+
 export function createRepository(storage: StorageAdapter) {
   return {
     async load(): Promise<AppData> {
       const d = emptyAppData();
       return {
-        profile: await read(storage, KEYS.profile, d.profile),
+        profile: migrateProfile(await read(storage, KEYS.profile, d.profile)),
         items: await read(storage, KEYS.items, d.items),
         outfits: await read(storage, KEYS.outfits, d.outfits),
         ratings: await read(storage, KEYS.ratings, d.ratings),

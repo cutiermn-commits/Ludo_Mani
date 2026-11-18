@@ -66,6 +66,18 @@ describe('no hard-coded user-facing text in components (CLAUDE.md non-negotiable
   });
 });
 
+describe('drawn height/shape and the tap-the-dots steps stay in their place (D-062, privacy audit)', () => {
+  const scoped = /\b(shape|shapes|form|hip|hips|hofte|hofter|height|højde|taller|shorter|højere|lavere)\b/i;
+  const allowed = /^(avatar\.build|avatar\.height|mark\.)/;
+  it.each([
+    ['en', en],
+    ['da', da],
+  ] as const)('%s uses these words only in the avatar picker and point marking', (_l, dict) => {
+    const hits = Object.entries(dict).filter(([k, v]) => scoped.test(v) && !allowed.test(k));
+    expect(hits).toEqual([]);
+  });
+});
+
 describe('body-image safety in copy (PRIVACY_SAFETY §2.6)', () => {
   const banned = /\b(weight|weigh|size|slim|slimming|flattering|fat|skinny|ugly|perfect body|body|figure|vægt|vejer|størrelse|slank|slankende|tyk|tynd|grim|krop|figur)\b/i;
   it.each([

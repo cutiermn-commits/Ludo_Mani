@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
 import { useApp } from '@/features/app/AppState';
@@ -12,7 +12,7 @@ import { useTheme } from '@/ui/useTheme';
 import { MarkBody } from './MarkBody';
 import { TryOnPhoto } from './TryOnPhoto';
 
-type Found = 'idle' | 'finding' | 'found' | 'feetGuessed' | 'notFound' | 'manual';
+type Found = 'idle' | 'finding' | 'found' | 'feetGuessed' | 'notFound' | 'failed' | 'manual';
 
 /**
  * "My photo" (D-063, D-064): a full-body photo of herself to try clothes on. After saving, the
@@ -26,23 +26,28 @@ export function BodyPhotoCard({ width = 220 }: { width?: number }) {
   const c = useTheme();
   const [found, setFound] = useState<Found>('idle');
   const [marking, setMarking] = useState(false);
+  /** Bumped whenever the photo changes: a slow detection for an older photo must not write its points. */
+  const photoVersion = useRef(0);
   if (!profile) return null;
   const uri = profile.selfieUri;
 
   const find = async (photo: { uri: string; width: number; height: number }) => {
+    const version = photoVersion.current;
     setFound('finding');
     try {
       const res = await detectPose(photo, photos, runPose);
+      if (version !== photoVersion.current) return;
       if (res.ok) {
         await updateProfile({ photoPose: res.pose, photoPoseSource: 'auto' });
         setFound(res.estimatedFeet ? 'feetGuessed' : 'found');
       } else {
-        await updateProfile({ photoPose: undefined, photoPoseSource: undefined });
         setFound('notFound');
       }
     } catch {
-      await updateProfile({ photoPose: undefined, photoPoseSource: undefined });
-      setFound('notFound');
+      // A technical problem (the pose page didn't load or answer): say so, and offer the taps at once.
+      if (version !== photoVersion.current) return;
+      setFound('failed');
+      setMarking(true);
     }
   };
 
@@ -51,6 +56,7 @@ export function BodyPhotoCard({ width = 220 }: { width?: number }) {
       () => pickBodyPhoto(source),
       (p) => processBodyPhoto(p, photos),
       async (res) => {
+        photoVersion.current += 1;
         const old = profile.selfieUri;
         // Save the new photo first, then delete the old one (never leave the profile pointing at nothing).
         await updateProfile({ selfieUri: res.uri, photoAspect: res.aspect, photoPose: undefined, photoPoseSource: undefined, useSelfie: true });
@@ -60,6 +66,7 @@ export function BodyPhotoCard({ width = 220 }: { width?: number }) {
     );
 
   const remove = async () => {
+    photoVersion.current += 1;
     const old = profile.selfieUri;
     await updateProfile({ selfieUri: undefined, photoAspect: undefined, photoPose: undefined, photoPoseSource: undefined, useSelfie: false });
     if (old) await photos.remove(old);
@@ -72,6 +79,7 @@ export function BodyPhotoCard({ width = 220 }: { width?: number }) {
     found: t('body.found'),
     feetGuessed: t('body.feetGuessed'),
     notFound: t('body.notFound'),
+    failed: t('body.failed'),
     manual: t('body.manualSaved'),
   };
 
@@ -117,7 +125,7 @@ export function BodyPhotoCard({ width = 220 }: { width?: number }) {
         <Row wrap>
           <Chip icon="📷" label={t('body.take')} onPress={() => action.withCameraIntro(() => void add('camera'))} />
           <Chip icon="🖼️" label={t('photo.choose')} onPress={() => void add('library')} />
-          {uri && <Chip icon="✨" label={t('body.findAgain')} onPress={() => void find({ uri, width: 0, height: 0 })} />}
+          {uri && <Chip icon="✨" label={t('body.findAgain')} onPress={() => void find({ uri, width: Math.round((profile.photoAspect ?? 0.75) * 1000), height: 1000 })} />}
           {uri && <Chip icon="👆" label={t('body.markMyself')} onPress={() => setMarking(true)} />}
           {uri && <Chip icon="✖️" label={t('photo.remove')} onPress={() => void remove()} />}
         </Row>

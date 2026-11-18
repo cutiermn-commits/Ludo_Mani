@@ -4,18 +4,16 @@
 
 **App name** (28/30): Wardrobe Buddy: What to Wear
 
-**Short description** (73/80): Today's weather + your own clothes = an outfit idea each morning. No ads.
+**Short description** (75/80): Photograph your own clothes, then try them on your avatar or photo. No ads.
 
-**Full description** (1063/4000):
+**Full description** (recount before pasting):
 
-What should I wear today? Wardrobe Buddy picks an outfit from your own clothes every morning, matched to the weather and your mood, in about 30 seconds.
+What should I wear today? Take a photo of each piece of your own clothes, then try outfits on your avatar or on a photo of yourself.
 
-• Add your clothes with a photo, or just pick the type and colour.
-• Today: the forecast for your town, a mood (happy, cozy, sporty, fancy, chill) and an outfit with a short "why this?".
-• Don't forget: rain jacket, umbrella, gloves or sunscreen, only on the days you need them.
-• Week planner: seven days ahead, no repeats in a row.
-• Learns what you like from your stars and quick reasons.
-• Make an avatar, or use a selfie with the face area blurred.
+• Me: make a rich avatar (skin, hair, eyes, hairstyle, glasses, freckles and more) or add a photo of yourself.
+• My clothes: take a photo of each piece and pick what it is. The background is cut out on your phone.
+• My day: tap clothes to put them on or take them off, and move any piece so it sits right.
+• A small weather line for your town, if a parent allows it.
 • Danish and English. Pink, blue, green or purple, with dark mode.
 
 Safe by design

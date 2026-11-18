@@ -53,11 +53,12 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Wardrobe Buddy uses your photos only to add pictures of your clothes or a photo of yourself (your face is blurred). They stay on this device.",
-          "cameraPermission": "Wardrobe Buddy uses the camera only to take pictures of your clothes or a selfie (your face is blurred). They stay on this device.",
+          "photosPermission": "Wardrobe Buddy uses your photos only to add pictures of your clothes, or a photo of yourself to try clothes on. They stay on this device.",
+          "cameraPermission": "Wardrobe Buddy uses the camera only to take pictures of your clothes, or of you to try clothes on. They stay on this device.",
           "microphonePermission": false
         }
-      ]
+      ],
+      "./plugins/withWebViewPrivacy"
     ],
     "experiments": {
       "typedRoutes": true,

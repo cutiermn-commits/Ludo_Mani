@@ -4,18 +4,16 @@
 
 **App name** (27/30): Wardrobe Buddy – tøjhjælper
 
-**Short description** (75/80): Dagens vejr + dit eget tøj = et outfit-forslag hver morgen. Ingen reklamer.
+**Short description** (74/80): Tag billeder af dit eget tøj, og prøv det på din avatar eller dit billede.
 
-**Full description** (1121/4000):
+**Full description** (tæl igen før indsættelse):
 
-Hvad skal jeg have på i dag? Wardrobe Buddy finder et outfit fra dit eget tøj hver morgen, der passer til vejret og dit humør, på cirka 30 sekunder.
+Hvad skal jeg have på i dag? Tag et billede af hvert stykke af dit eget tøj, og prøv outfits på din avatar eller på et billede af dig selv.
 
-• Tilføj dit tøj med et billede, eller vælg bare type og farve.
-• I dag: vejrudsigten for din by, et humør (glad, hyggelig, sporty, fin, afslappet) og et outfit med et kort "hvorfor det her?".
-• Husk: regnjakke, paraply, handsker eller solcreme, kun de dage du har brug for det.
-• Ugeplan: syv dage frem, uden gentagelser to dage i træk.
-• Lærer hvad du kan lide ud fra dine stjerner og korte grunde.
-• Lav en avatar, eller brug en selfie med sløret ansigtsområde.
+• Mig: lav en flot avatar (hud, hår, øjne, frisure, briller, fregner og mere), eller tilføj et billede af dig selv.
+• Mit tøj: tag et billede af hvert stykke tøj, og vælg, hvad det er. Baggrunden klippes væk på din telefon.
+• Min dag: tryk på tøj for at tage det på eller af, og flyt et stykke, så det sidder rigtigt.
+• En lille vejrlinje for din by, hvis en forælder tillader det.
 • Dansk og engelsk. Lyserød, blå, grøn eller lilla, med mørk tilstand.
 
 Sikker fra starten

@@ -48,3 +48,9 @@ Requests must not include any identifier, cookie or custom header. Show Open-Met
 
 ## Security
 Data stays in the app sandbox. Turn on OS-level file protection where the platform supports it. No logging of personal data. No remote config. No WebViews to outside sites.
+
+## Update 2026-11-18: simple flow (D-061–D-066)
+- **UI flow:** Me → Wardrobe → My day. There are no automatic suggestions.
+- **Parked, not deleted:** `src/engine` (suggest, week, learning) and the rating/learning state in `AppState`. They are kept tested but are not reachable from the UI. Only the weather helpers (`isRainy`, `isWindy`) are used, by the weather line.
+- **`src/domain/fit`:** pure placement (`place.ts`), the avatar geometry (`avatarBody.ts`) and MoveNet pre/post-processing (`movenet.ts`). The avatar and her photo are dressed by the same rules.
+- **`src/services/pose`:** on-device pose detection behind `RunPose`. A hidden WebView (native) or sandboxed iframe (web) hosts `assets/pose/pose.html`, which is offline with CSP `default-src 'none'`. It is built by `npm run build:pose` from `vendor/movenet`.

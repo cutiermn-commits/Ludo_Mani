@@ -42,3 +42,18 @@ describe('parental gate', () => {
     for (const bad of ['', ' ', '281', '282.5', 'abc', '0x11A']) expect(checkGateAnswer(q, bad)).toBe(false);
   });
 });
+
+describe('profile migration (D-063)', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { migrateProfile } = require('../repository');
+  const base = { id: 'p', nickname: 'Star', avatar: { skin: 1, hair: 1, hairStyle: 'long' } };
+  it('drops an old blurred head selfie (no photoAspect) and shows the avatar', () => {
+    expect(migrateProfile({ ...base, selfieUri: 'file:///old.jpg', useSelfie: true })).toEqual({ ...base, useSelfie: false });
+  });
+  it('keeps a new full-body photo and profiles without a photo', () => {
+    const p = { ...base, selfieUri: 'file:///new.jpg', photoAspect: 0.75, useSelfie: true };
+    expect(migrateProfile(p)).toBe(p);
+    expect(migrateProfile(base)).toBe(base);
+    expect(migrateProfile(null)).toBeNull();
+  });
+});

@@ -39,11 +39,17 @@ export function PoseProvider({ children }: { children: ReactNode }) {
       try {
         return await channel.run(bytesToBase64(input));
       } finally {
-        idle.current = setTimeout(() => {
-          if (channel.busy) return;
+        // Unload the page (and its model memory) once nothing has used it for a while.
+        const close = () => {
+          if (channel.busy) {
+            idle.current = setTimeout(close, IDLE_MS);
+            return;
+          }
           setActive(false);
           channel.reset();
-        }, IDLE_MS);
+        };
+        if (idle.current) clearTimeout(idle.current);
+        idle.current = setTimeout(close, IDLE_MS);
       }
     },
     [channel],

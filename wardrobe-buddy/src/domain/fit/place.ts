@@ -66,9 +66,25 @@ function sized(w: number, aspect: number | undefined, maxH: number): { w: number
   return { w, h };
 }
 
+export const FIT_LIMITS = { minScale: 0.4, maxScale: 2.5, maxMove: 3 } as const;
+const clampScale = (s: number) => Math.min(FIT_LIMITS.maxScale, Math.max(FIT_LIMITS.minScale, s || 1));
+const clampMove = (v: number) => Math.min(FIT_LIMITS.maxMove, Math.max(-FIT_LIMITS.maxMove, v || 0));
+
+/** Her fine-tuning step: move by (dx, dy) shoulder-widths and/or multiply the size, within limits. */
+export function nudgeFit(fit: GarmentFit | undefined, delta: { dx?: number; dy?: number; scale?: number }): GarmentFit {
+  const f = fit ?? { dx: 0, dy: 0, scale: 1 };
+  return { dx: clampMove(f.dx + (delta.dx ?? 0)), dy: clampMove(f.dy + (delta.dy ?? 0)), scale: clampScale(f.scale * (delta.scale ?? 1)) };
+}
+
+/** What is actually seen when she wears these: a dress replaces any top and bottom (the one place this rule lives). */
+export function visibleWorn<T extends Pick<ClothingItem, 'category'>>(items: readonly T[]): T[] {
+  const hasDress = items.some((i) => i.category === 'dress');
+  return items.filter((i) => !(hasDress && (i.category === 'top' || i.category === 'bottom')));
+}
+
 function applyFit(b: Box, fit: GarmentFit | undefined, unit: number): Box {
   if (!fit) return b;
-  const s = Math.min(2.5, Math.max(0.4, fit.scale || 1));
+  const s = clampScale(fit.scale);
   const w = b.w * s;
   const h = b.h * s;
   // Resize around the top centre (where a garment hangs from), then move.
@@ -109,15 +125,14 @@ export function garmentBox(category: Category, aspect: number | undefined, pose:
  * as her real clothes; a dress replaces top and bottom.
  */
 export function placeGarments(items: readonly ClothingItem[], pose: BodyPose): PlacedGarment[] {
-  const hasDress = items.some((i) => i.category === 'dress');
+  const shown = visibleWorn(items);
   const unit = bodyFrame(pose).shoulderW;
   const out: PlacedGarment[] = [];
   for (const category of WEAR_ORDER) {
-    if (hasDress && (category === 'top' || category === 'bottom')) continue;
-    const it = items.find((i) => i.category === category && i.cutoutUri);
+    const it = shown.find((i) => i.category === category && i.cutoutUri);
     if (!it?.cutoutUri) continue;
     const box = garmentBox(category, it.cutoutAspect, pose);
-    if (box) out.push({ itemId: it.id, uri: it.cutoutUri, category, box: applyFit(box, it.fit, unit) });
+    if (box) out.push({ itemId: it.id, uri: it.cutoutUri, category, box: applyFit(box, it.fit && { ...it.fit, dx: clampMove(it.fit.dx), dy: clampMove(it.fit.dy) }, unit) });
   }
   return out;
 }

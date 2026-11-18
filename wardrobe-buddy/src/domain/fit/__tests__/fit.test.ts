@@ -2,7 +2,7 @@ import type { BodyPose, ClothingItem } from '@/domain/types';
 
 import { avatarBody } from '../avatarBody';
 import { decodePose, letterbox, MOVENET_SIZE, poseFromTaps } from '../movenet';
-import { bodyFrame, garmentBox, placeGarments, poseToPixels, toggleWorn } from '../place';
+import { bodyFrame, FIT_LIMITS, garmentBox, nudgeFit, placeGarments, poseToPixels, toggleWorn, visibleWorn } from '../place';
 
 const item = (id: string, category: ClothingItem['category'], extra: Partial<ClothingItem> = {}): ClothingItem => ({
   id,
@@ -88,7 +88,22 @@ describe('garment placement (D-065)', () => {
   });
 });
 
+describe('fine-tuning steps', () => {
+  it('adds moves and multiplies size, within limits', () => {
+    expect(nudgeFit(undefined, { dy: 0.06 })).toEqual({ dx: 0, dy: 0.06, scale: 1 });
+    const big = Array.from({ length: 40 }).reduce<ReturnType<typeof nudgeFit> | undefined>((f) => nudgeFit(f, { scale: 1.06, dx: 0.5 }), undefined)!;
+    expect(big.scale).toBe(FIT_LIMITS.maxScale);
+    expect(big.dx).toBe(FIT_LIMITS.maxMove);
+    expect(nudgeFit({ dx: 0, dy: 0, scale: 0.41 }, { scale: 0.5 }).scale).toBe(FIT_LIMITS.minScale);
+  });
+});
+
 describe('wearing rules', () => {
+  it('a dress hides top and bottom (one rule for avatar and photo)', () => {
+    const worn = [item('t', 'top'), item('b', 'bottom'), item('d', 'dress'), item('s', 'shoes')];
+    expect(visibleWorn(worn).map((i) => i.id)).toEqual(['d', 's']);
+    expect(visibleWorn([item('t', 'top')]).map((i) => i.id)).toEqual(['t']);
+  });
   const all = [item('t1', 'top'), item('t2', 'top'), item('b', 'bottom'), item('d', 'dress'), item('j', 'outerwear')];
   it('one per slot, tap again to take off', () => {
     expect(toggleWorn(['t1', 'b'], all[1], all)).toEqual(['b', 't2']);

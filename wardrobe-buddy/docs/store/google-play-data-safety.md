@@ -13,7 +13,7 @@
 | Approximate coordinates of the chosen town (rounded to ~1 km) | Only with consent, about once an hour | Open-Meteo forecast (`api.open-meteo.com`) | Same |
 | Device IP address | With every request above | Open-Meteo | Unavoidable network property |
 
-Everything else (profile, clothes, photos, selfie, diary, ratings, learning) **never leaves the device**. There is no analytics, ads, crash reporting or backend. Android Auto Backup is off (D-046).
+Everything else (profile, avatar, clothes and cut-outs, her full-body photo and the body points found in it on the device, the clothes chosen each day) **never leaves the device**. Pose detection runs offline inside the app (D-064). [D-063: the full-body photo is unblurred during testing; recheck the answers after the release decision.] There is no analytics, ads, crash reporting or backend. Android Auto Backup is off (D-046).
 
 ## Recommended answers (conservative)
 | Play Console question | Answer | Why |

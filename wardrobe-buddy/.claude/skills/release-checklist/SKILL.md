@@ -19,6 +19,9 @@ Check the **current** Apple App Store Review Guidelines (1.3, 5.1, 5.1.4), Apple
 - [ ] `kid-safety-review` skill passes on the whole app
 - [ ] Parental gate on settings, links, export, delete and city change
 - [ ] Export and delete-all work; uninstall leaves nothing behind
+- [ ] **D-063 blocker:** the full-body try-on photo blur rule is decided and `BODY_PHOTO_BLURRED` in `src/services/photos/selfie.ts` matches it (the release-gate test fails while it is `false` unless this blocker is still open in docs/RELEASE_CHECKLIST.md)
+- [ ] Pose detection (D-064) checked on a real Android release build: works offline, time to result noted; WebView metrics opt-out present in the merged manifest
+- [ ] Third-party licences credited (MoveNet / TensorFlow.js Apache-2.0, TF.js conversion MIT: `vendor/movenet/README.md`)
 - [ ] DA + EN complete (key-parity test green); both reviewed by native speakers (D-011); no cut-off text in Danish layouts
 - [ ] Store listings, screenshots and privacy policies exist in both Danish and English
 - [ ] No payment, subscription, ad or donation flow anywhere (non-profit, D-013)

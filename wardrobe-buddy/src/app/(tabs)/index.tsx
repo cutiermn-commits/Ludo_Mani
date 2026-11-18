@@ -2,8 +2,8 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, useWindowDimensions, View } from 'react-native';
 
-import { toggleWorn } from '@/domain/fit/place';
-import type { Category, ClothingItem, GarmentFit } from '@/domain/types';
+import { nudgeFit, toggleWorn } from '@/domain/fit/place';
+import type { Category, ClothingItem } from '@/domain/types';
 import { useApp, useTodayWeather } from '@/features/app/AppState';
 import { newId } from '@/features/app/dates';
 import { TryOnPhoto } from '@/features/fit/TryOnPhoto';
@@ -18,14 +18,13 @@ import { space } from '@/ui/theme';
 /** The rows she picks from, top to toe (her sketch: T-shirts / Pants / Shorts tabs, generalised). */
 const ROWS: Category[] = ['top', 'bottom', 'dress', 'outerwear', 'shoes'];
 const STEP = 0.06;
-const NO_FIT: GarmentFit = { dx: 0, dy: 0, scale: 1 };
 
 /**
  * "My day" (owner's simple flow, D-061): she picks clothes from her wardrobe and sees them worn by
  * her avatar or on her own photo. No automatic suggestions, moods or ratings.
  */
 export default function Today() {
-  const { t, profile, items, outfits, saveOutfit, upsertItem, updateProfile, today } = useApp();
+  const { t, profile, items, outfits, saveOutfit, updateItem, updateProfile, today } = useApp();
   const weather = useTodayWeather();
   const nameOf = useItemName();
   const { width: screenW } = useWindowDimensions();
@@ -46,10 +45,7 @@ export default function Today() {
     // Her choice for today is kept, so it's still there when she opens the app again.
     void saveOutfit({ id: saved?.id ?? newId(), date: today, itemIds: next, extras: [], source: 'manual' });
   };
-  const nudge = (item: ClothingItem, p: Partial<GarmentFit>) => {
-    const f = item.fit ?? NO_FIT;
-    void upsertItem({ ...item, fit: { dx: f.dx + (p.dx ?? 0), dy: f.dy + (p.dy ?? 0), scale: Math.min(2.5, Math.max(0.4, f.scale * (p.scale ?? 1))) } });
-  };
+  const nudge = (item: ClothingItem, delta: { dx?: number; dy?: number; scale?: number }) => void updateItem(item.id, (i) => ({ ...i, fit: nudgeFit(i.fit, delta) }));
 
   if (items.length === 0) {
     return (
@@ -122,7 +118,7 @@ export default function Today() {
             <Row wrap style={{ justifyContent: 'center' }}>
               <Chip icon="➖" label={t('fit.smaller')} onPress={() => nudge(adjustItem, { scale: 1 / 1.06 })} />
               <Chip icon="➕" label={t('fit.bigger')} onPress={() => nudge(adjustItem, { scale: 1.06 })} />
-              <Chip icon="↺" label={t('fit.reset')} onPress={() => void upsertItem({ ...adjustItem, fit: undefined })} />
+              <Chip icon="↺" label={t('fit.reset')} onPress={() => void updateItem(adjustItem.id, (i) => ({ ...i, fit: undefined }))} />
             </Row>
           </View>
         )}

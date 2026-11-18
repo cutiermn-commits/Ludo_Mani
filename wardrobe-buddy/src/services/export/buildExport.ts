@@ -4,7 +4,8 @@ import type { AppData } from '@/data/repository';
  * Parent export (PRIVACY_SAFETY §2.9: "JSON + photos"). One JSON file:
  *   { app, schema, exportedAt, data, photos: { "item:<id>" | "cutout:<id>" | "selfie" | "diary:<id>": "data:image/…;base64,…" } }
  * In `data`, every photo file path is replaced by `photo:<key>`, so no device paths leave the
- * phone. Selfies and diary photos are embedded as stored, i.e. already blurred. The cached
+ * phone. Photos are embedded as stored. NOTE (D-063): during the test period her full-body photo is stored
+ * and exported WITHOUT blurring; older diary photos were stored blurred. The cached
  * forecast is left out (not hers). Photos already stored inline (web data URIs) stay where they
  * are. Built in parts so phones can write it to a file photo by photo instead of one huge string.
  */
