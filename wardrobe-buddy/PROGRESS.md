@@ -1,6 +1,6 @@
 # Progress — Wardrobe Buddy
 
-_Last updated: 2026-11-17 (Claude Code)_
+_Last updated: 2026-11-18 (Claude Code)_
 
 ## Status by phase
 | Phase | Status | Notes |
@@ -13,14 +13,15 @@ _Last updated: 2026-11-17 (Claude Code)_
 | 5. Today + Week | ✅ Done | Weather card, mood picker, avatar wearing the outfit, swap tabs, "Why this?", don't-forget chips; Week days expand to show why + what to remember. Exit test: 120 items, today + 7-day plan well under 2 s |
 | 6. Rating + learning | ✅ Done (device test pending) | Stars + reason chips, "I wore this", learning shown in Me + reset; **outfit diary photo** (blurred like selfies, optional, from the rating screen) and "My outfit diary" in Me. Exit: ratings change the next suggestion (engine test) |
 | 7. Polish | ✅ Done (device test pending) | Outfit "drops in" on change (off with reduced motion), haptics on choices (expo-haptics), a11y test over every screen (roles, labels, images), WCAG AA contrast test, Danish copy review list `docs/COPY_REVIEW.md` (D-011) |
+| 9. Simple flow + try-on (owner request 2026-11-18) | 🟢 Built, web e2e passed (device test pending) | D-061–D-065: Me → Wardrobe → My day; rich SVG avatar with drawn height/shape choices (no numbers); her own full-body photo (not blurred during testing, D-063) with **on-device pose detection** (MoveNet in an offline page, hidden WebView / sandboxed iframe) and a 6-tap fallback; her clothes laid on the avatar or photo by one rule set, with move/resize per garment. Suggestions, moods, ratings, week and diary removed from the UI |
 | 8. Release prep | 🟢 Drafts ready, **owner approval needed** | Export now includes all photos (one JSON file, shared via the OS share sheet / downloaded on web); draft privacy policies kid + parent, DA + EN (`docs/legal/`); Google Play listing DA + EN, Data safety + target audience + rating answers (`docs/store/`); 8 store screenshots from demo data; release-checklist report `docs/RELEASE_CHECKLIST.md`. Nothing submitted or published |
 
 ## What she can do now (5-line note)
-1. Pick Dansk/English; a grown-up answers the maths gate; she picks a nickname, age band, style, avatar and town.
-2. Add clothes (type, colours, warmth, waterproof, style tags, ♥, in the wash). No photos yet.
-3. Today: the weather, a mood, an outfit on her avatar, "Why this?", swaps and "don't forget" chips; then "I'll wear this" and a star rating.
-4. Week: a 7-day plan that avoids repeats; Me: themes, dark mode, language, colours, "what I've learned".
-5. Run it: `cd wardrobe-buddy && npm install && npx expo start` (press `w` for web, or scan with Expo Go).
+1. Pick Dansk/English; a grown-up answers the maths gate (and the weather question); she picks a nickname, age band and makes her avatar.
+2. **Me:** a rich avatar (skin, hair, style, eyes, height and shape from pictures, glasses, freckles, earrings, hair things) and, if she wants, a full-body photo of herself; the phone finds her shoulders, hips and feet (or she taps them).
+3. **Wardrobe:** take or choose a photo of each piece and pick what it is. The background is cut out on the device.
+4. **My day:** tap clothes from her wardrobe to put them on or take them off; see them on the avatar or her photo; move or resize any piece. A small weather line on top.
+5. Run it: `cd wardrobe-buddy && npm install && npx expo start` (press `w` for web), or the web app https://wardrobe-buddy.github.io/, or the Android preview APK.
 
 ## How to run / check
 - `npm test` · `npm run test:engine` (coverage) · `npm run typecheck` · `npm run lint` · `npm run ci` (all three)
@@ -32,6 +33,8 @@ _Last updated: 2026-11-17 (Claude Code)_
 - Existing: D-004 store category, D-008 Open-Meteo confirmation email, D-009 legal review, D-010 developer accounts, D-011 native-speaker copy review.
 
 ## Open questions / NOT VERIFIED
+- **Pose on a real phone (D-064):** that the hidden WebView loads the bundled 6.8 MB page from `expo-asset` in a release APK, how long detection takes on a mid-range Android, and accuracy on real photos (tested only on a drawn person in headless Chromium, ~1.7 s).
+- **Unblurred photo (D-063):** fine for the owner's test; a decision on blurring is a BLOCKER before any store release.
 - Open-Meteo **forecast** variable names (`temperature_2m`, `apparent_temperature`, `precipitation_probability`, `precipitation`, `wind_speed_10m`, `uv_index`, `snowfall`): the live call from the build sandbox returned HTTP 429 ("Daily API request limit exceeded", shared IP). The geocoding fields WERE verified live. Re-check on a device.
 - The app has not been run on an iOS simulator or Android emulator (none in this cloud sandbox). The web build was exercised end-to-end in headless Chromium with the weather mocked.
 - Apple 1.3 / 5.1.4 and the Google Families Policy were not re-read in this session (those hosts aren't on this sandbox's network allowlist). The rules in `docs/PRIVACY_SAFETY.md` (checked 17 Nov 2026) were used as given.

@@ -39,5 +39,8 @@ Run against `.claude/skills/release-checklist/SKILL.md` for the **Google Play** 
 4. Send the Open-Meteo non-commercial confirmation (D-008), and ask whether they keep request logs (Data safety "ephemeral").
 5. Store category and age groups (D-004).
 6. Closed test (12 testers for 14 days) if the personal account rule applies.
+7. **BLOCKER (D-063): her full-body photo is stored without blurring during the test period.** Decide on blurring or face handling before any store release, then update the privacy drafts and the Data safety draft.
+8. **Licences (D-064):** credit MoveNet (Google, Apache-2.0), TensorFlow.js (Apache-2.0) and the TF.js conversion (MIT) in the app's about text and store listing notes (`vendor/movenet/README.md`).
+9. Check on a real phone that pose detection works offline and in reasonable time (D-064), and that the Data safety answers still hold ("photos stay on the device"; the pose model runs on the device).
 
 **Stopped here. Nothing was submitted.**
