@@ -78,6 +78,34 @@ describe('cutoutBackground', () => {
     if (res.ok) expect(res.image.width).toBeGreaterThan(110); // spans both shoes
   });
 
+  it('beige top on a beige floor: either a clean cut-out or an honest refusal, never a garment half eaten', () => {
+    const res = cutoutBackground(photo(200, 200, () => [222, 205, 178], [196, 175, 140]));
+    if (res.ok) expect(opaqueShare(res.image)).toBeGreaterThan(0.4);
+  });
+
+  it('a hard shadow next to the garment does not swallow the cut-out', () => {
+    const w = 200;
+    const img = photo(w, 200, () => [236, 232, 226], [205, 40, 45]);
+    for (let y = 60; y < 170; y++) for (let x = 150; x < 175; x++) img.data.set([150, 148, 144, 255], (y * w + x) * 4);
+    const res = cutoutBackground(img);
+    expect(res.ok).toBe(true);
+    if (res.ok) expect(detectColors(res.image, 1)[0]).toBe('red');
+  });
+
+  it('refuses a person photographed from the waist up (touches the bottom edge)', () => {
+    const w = 200;
+    const h = 200;
+    const img = photo(w, h, () => [236, 232, 226], null);
+    for (let y = 30; y < h; y++)
+      for (let x = 0; x < w; x++) {
+        const head = y < 80 && (x - 100) ** 2 + (y - 55) ** 2 < 25 ** 2;
+        const body = y >= 80 && Math.abs(x - 100) < 55;
+        if (head) img.data.set([226, 186, 160, 255], (y * w + x) * 4);
+        if (body) img.data.set([60, 92, 150, 255], (y * w + x) * 4);
+      }
+    expect(cutoutBackground(img)).toEqual({ ok: false, reason: 'cut-off' });
+  });
+
   it('refuses a photo with no garment', () => {
     expect(cutoutBackground(photo(200, 200, () => [236, 232, 226], null))).toEqual({ ok: false, reason: 'no-garment' });
   });

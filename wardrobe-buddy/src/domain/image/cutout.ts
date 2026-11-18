@@ -21,7 +21,12 @@ export const CUTOUT = {
   neighbourStep: 12,
   minForeground: 0.04,
   maxForeground: 0.9,
-  maxBorderTouch: 0.3,
+  /** Garment pixels allowed on the whole border ring, and on any one side. A flat-lay never
+   *  reaches the frame; a person photographed from the waist up does (privacy audit, D-059). */
+  maxBorderTouch: 0.2,
+  maxSideTouch: 0.35,
+  /** Kept area must fill at least this share of its bounding box (catches leaky, stringy fills). */
+  minBoxFill: 0.22,
   /** Regions at least this share of all foreground are kept (a pair of shoes or gloves is two). */
   minKeptRegion: 0.15,
   /** The kept regions must hold this share of all foreground (garment(s), not scattered noise). */
@@ -29,15 +34,19 @@ export const CUTOUT = {
   margin: 3,
 } as const;
 
-export type CutoutResult = { ok: true; image: RGBAImage; foregroundShare: number } | { ok: false; reason: 'busy-background' | 'no-garment' | 'fills-frame' | 'cut-off' };
+export type CutoutResult =
+  | { ok: true; image: RGBAImage; foregroundShare: number }
+  | { ok: false; reason: 'busy-background' | 'no-garment' | 'fills-frame' | 'cut-off' };
 
-function dist(d: Uint8Array, i: number, r: number, g: number, b: number): number {
+/** Squared "redmean" distance, scaled so that sqrt(dist2) matches the old 0–255-ish range. No sqrt in the hot loop. */
+function dist2(d: Uint8Array, i: number, r: number, g: number, b: number): number {
   const rm = (d[i] + r) / 2;
   const dr = d[i] - r;
   const dg = d[i + 1] - g;
   const db = d[i + 2] - b;
-  return Math.sqrt((2 + rm / 256) * dr * dr + 4 * dg * dg + (2 + (255 - rm) / 256) * db * db) / 3;
+  return ((2 + rm / 256) * dr * dr + 4 * dg * dg + (2 + (255 - rm) / 256) * db * db) / 9;
 }
+const dist = (d: Uint8Array, i: number, r: number, g: number, b: number) => Math.sqrt(dist2(d, i, r, g, b));
 
 function median(values: number[]): number {
   const s = [...values].sort((a, b) => a - b);
@@ -57,6 +66,12 @@ export function cutoutBackground(img: RGBAImage, opts: Partial<typeof CUTOUT> = 
   const bg = [0, 1, 2].map((c) => median(border.map((p) => d[p * 4 + c])));
   const spread = median(border.map((p) => dist(d, p * 4, bg[0], bg[1], bg[2])));
   const T = Math.min(o.maxThreshold, Math.max(o.minThreshold, 14 + spread * 2.5));
+  const T2 = T * T;
+  const seed2 = (T * 1.6) ** 2;
+  // Following a gradient (soft shadow) is allowed only up to 1.6×T from the background, so a
+  // garment close to the floor colour isn't slowly eaten (architecture review).
+  const grad2 = (T * 1.6) ** 2;
+  const step2 = o.neighbourStep * o.neighbourStep;
 
   // 2. Flood fill the background from the border.
   const isBg = new Uint8Array(n);
@@ -64,25 +79,26 @@ export function cutoutBackground(img: RGBAImage, opts: Partial<typeof CUTOUT> = 
   let head = 0;
   let tail = 0;
   for (const p of border) {
-    if (dist(d, p * 4, bg[0], bg[1], bg[2]) < T * 1.6) {
+    if (dist2(d, p * 4, bg[0], bg[1], bg[2]) < seed2) {
       isBg[p] = 1;
       queue[tail++] = p;
     }
   }
+  const visit = (p: number, q: number) => {
+    if (isBg[q]) return;
+    const toBg = dist2(d, q * 4, bg[0], bg[1], bg[2]);
+    if (toBg < T2 || (toBg < grad2 && dist2(d, q * 4, d[p * 4], d[p * 4 + 1], d[p * 4 + 2]) < step2)) {
+      isBg[q] = 1;
+      queue[tail++] = q;
+    }
+  };
   while (head < tail) {
     const p = queue[head++];
     const x = p % w;
-    const y = (p - x) / w;
-    const nb = [x > 0 ? p - 1 : -1, x < w - 1 ? p + 1 : -1, y > 0 ? p - w : -1, y < h - 1 ? p + w : -1];
-    for (const q of nb) {
-      if (q < 0 || isBg[q]) continue;
-      const toBg = dist(d, q * 4, bg[0], bg[1], bg[2]);
-      const toNeighbour = dist(d, q * 4, d[p * 4], d[p * 4 + 1], d[p * 4 + 2]);
-      if (toBg < T || (toNeighbour < o.neighbourStep && toBg < T * 2.2)) {
-        isBg[q] = 1;
-        queue[tail++] = q;
-      }
-    }
+    if (x > 0) visit(p, p - 1);
+    if (x < w - 1) visit(p, p + 1);
+    if (p >= w) visit(p, p - w);
+    if (p < n - w) visit(p, p + w);
   }
 
   // 3. Foreground regions.
@@ -98,17 +114,20 @@ export function cutoutBackground(img: RGBAImage, opts: Partial<typeof CUTOUT> = 
     tail = 0;
     queue[tail++] = s;
     label[s] = next;
+    const add = (q: number) => {
+      if (!isBg[q] && !label[q]) {
+        label[q] = next;
+        queue[tail++] = q;
+      }
+    };
     while (head < tail) {
       const p = queue[head++];
       size++;
       const x = p % w;
-      const y = (p - x) / w;
-      for (const q of [x > 0 ? p - 1 : -1, x < w - 1 ? p + 1 : -1, y > 0 ? p - w : -1, y < h - 1 ? p + w : -1]) {
-        if (q >= 0 && !isBg[q] && !label[q]) {
-          label[q] = next;
-          queue[tail++] = q;
-        }
-      }
+      if (x > 0) add(p - 1);
+      if (x < w - 1) add(p + 1);
+      if (p >= w) add(p - w);
+      if (p < n - w) add(p + w);
     }
     fgTotal += size;
     sizes.push(size);
@@ -130,6 +149,14 @@ export function cutoutBackground(img: RGBAImage, opts: Partial<typeof CUTOUT> = 
   if (keptSize / fgTotal < o.minMainRegion) return { ok: false, reason: 'busy-background' };
   const touching = border.filter((p) => kept(p)).length / border.length;
   if (touching > o.maxBorderTouch) return { ok: false, reason: 'cut-off' };
+  const side = (pts: number[]) => pts.filter((p) => kept(p)).length / pts.length;
+  const sides = [
+    Array.from({ length: w }, (_, x) => x),
+    Array.from({ length: w }, (_, x) => (h - 1) * w + x),
+    Array.from({ length: h }, (_, y) => y * w),
+    Array.from({ length: h }, (_, y) => y * w + w - 1),
+  ];
+  if (sides.some((pts) => side(pts) > o.maxSideTouch)) return { ok: false, reason: 'cut-off' };
 
   // 5. Crop to the garment, transparent background, softened edge.
   let x0 = w;
@@ -151,6 +178,7 @@ export function cutoutBackground(img: RGBAImage, opts: Partial<typeof CUTOUT> = 
   y1 = Math.min(h - 1, y1 + o.margin);
   const cw = x1 - x0 + 1;
   const ch = y1 - y0 + 1;
+  if (keptSize / (cw * ch) < o.minBoxFill) return { ok: false, reason: 'busy-background' };
   const out = new Uint8Array(cw * ch * 4);
   for (let y = y0; y <= y1; y++) {
     for (let x = x0; x <= x1; x++) {

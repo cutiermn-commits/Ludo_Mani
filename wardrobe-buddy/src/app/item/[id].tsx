@@ -16,6 +16,7 @@ import {
 import { useApp } from '@/features/app/AppState';
 import { newId } from '@/features/app/dates';
 import { ColorPicker } from '@/features/me/pickers';
+import { draftsToDiscard } from '@/features/wardrobe/drafts';
 import { ItemTile, itemIcon } from '@/features/wardrobe/visuals';
 import { PhotoStatus, usePhotoAction } from '@/features/photos/PhotoAction';
 import { makeCutout, pickClothes, processPhoto } from '@/services/photos/capture';
@@ -78,7 +79,7 @@ export default function ItemEditor() {
       setSaveFailed(true);
       return;
     }
-    const discard = drafts.current.filter((u) => u !== item.photoUri);
+    const discard = draftsToDiscard(drafts.current, item);
     drafts.current = [];
     for (const u of discard) await photos.remove(u);
     router.back();
@@ -95,12 +96,12 @@ export default function ItemEditor() {
     action.run(
       () => pickClothes(source),
       (p) => processPhoto(p, photos),
-      ({ photoUri, cutoutUri, colors }) => {
+      ({ photoUri, cutoutUri, cutoutAspect, colors }) => {
         drafts.current.push(photoUri);
         if (cutoutUri) drafts.current.push(cutoutUri);
         setGuessed(colors.length > 0);
         setCutout(cutoutUri ? 'ok' : 'failed');
-        setItem((x) => ({ ...x, photoUri, cutoutUri, colors: x.colors.length ? x.colors : colors }));
+        setItem((x) => ({ ...x, photoUri, cutoutUri, cutoutAspect, colors: x.colors.length ? x.colors : colors }));
       },
     );
 
@@ -114,7 +115,7 @@ export default function ItemEditor() {
         if (!res) return setCutout('failed');
         drafts.current.push(res.cutoutUri);
         setCutout('ok');
-        setItem((x) => ({ ...x, cutoutUri: res.cutoutUri }));
+        setItem((x) => ({ ...x, cutoutUri: res.cutoutUri, cutoutAspect: res.cutoutAspect }));
       },
     );
 
@@ -142,7 +143,7 @@ export default function ItemEditor() {
             <Chip icon="📷" label={t('photo.take')} onPress={() => action.withCameraIntro(() => void addPhoto('camera'))} />
             <Chip icon="🖼️" label={t('photo.choose')} onPress={() => void addPhoto('library')} />
             {item.photoUri && !item.cutoutUri && <Chip icon="✂️" label={t('cutout.make')} onPress={() => void recut()} />}
-            {item.photoUri && <Chip icon="✖️" label={t('photo.remove')} onPress={() => set({ photoUri: undefined, cutoutUri: undefined })} />}
+            {item.photoUri && <Chip icon="✖️" label={t('photo.remove')} onPress={() => set({ photoUri: undefined, cutoutUri: undefined, cutoutAspect: undefined })} />}
           </Row>
         )}
         {cutout === 'ok' && item.cutoutUri && (

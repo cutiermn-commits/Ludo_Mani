@@ -7,7 +7,7 @@
 **Hvad appen gemmer, og hvor.** Alt nedenfor gemmes **kun på dit barns enhed** (på nettet: kun i den browser). Vi som udvikler modtager det aldrig:
 - et kælenavn (ikke rigtigt navn), en aldersgruppe (11–12 eller 13–15), stil- og farvevalg, "fryser let/bliver let varm", tema og sprog;
 - byen valgt til vejret (og den seneste vejrudsigt, gemt i cirka en time) og eventuelle påklædningsregler fra skolen;
-- tøj med valgfrie billeder (formindsket på enheden; placering og andre metadata fjernet);
+- tøj med valgfrie billeder (formindsket på enheden; placering og andre metadata fjernet) og, hvor det lykkes, et udklip af tøjet uden baggrund, som den tegnede avatar har på;
 - en valgfri selfie og valgfrie dagbogsbilleder. Den øverste del af hvert billede, hvor et ansigt plejer at være, sløres, før det gemmes (der er ingen automatisk ansigtsgenkendelse; dit barn kan sløre hele billedet), og originalen uden sløring gemmes aldrig;
 - outfits, bedømmelser og det, appen har lært af dem.
 

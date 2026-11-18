@@ -29,6 +29,11 @@ export function Avatar({ look, outfit = [], size = 180, label }: { look: AvatarL
   const shoes = pick('shoes');
   const hex = (i?: ClothingItem, fallback = '#E9E4EF') => (i ? CLOTHING_HEX[i.colors[0] ?? 'grey'] : fallback);
   const garments = layoutGarments(outfit);
+  // Under a real garment the body is skin, so colour blocks never show through necklines or below shorts.
+  const worn = new Set(garments.map((g) => g.category));
+  const topHex = worn.has('top') || worn.has('dress') ? skin : hex(top);
+  const armHex = worn.has('outerwear') ? skin : outer ? hex(outer) : topHex;
+  const legHex = dress || worn.has('bottom') ? skin : hex(bottom);
 
   return (
     <View accessible accessibilityRole="image" accessibilityLabel={label} style={{ width: 120 * u, height: size, alignItems: 'center' }}>
@@ -67,21 +72,21 @@ export function Avatar({ look, outfit = [], size = 180, label }: { look: AvatarL
       <View style={{ width: 12 * u, height: 5 * u, backgroundColor: skin }} />
       {/* torso + arms */}
       <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-        <View style={{ width: 12 * u, height: 48 * u, marginTop: 2 * u, borderRadius: 6 * u, backgroundColor: outer ? hex(outer) : hex(top) }} />
-        <View style={{ width: 52 * u, height: dress ? 72 * u : 48 * u, backgroundColor: hex(top), borderTopLeftRadius: 12 * u, borderTopRightRadius: 12 * u, borderBottomLeftRadius: dress ? 4 * u : 0, borderBottomRightRadius: dress ? 4 * u : 0, flexDirection: 'row', justifyContent: 'space-between', overflow: 'hidden' }}>
-          {outer && (
+        <View style={{ width: 12 * u, height: 48 * u, marginTop: 2 * u, borderRadius: 6 * u, backgroundColor: armHex }} />
+        <View style={{ width: 52 * u, height: dress ? 72 * u : 48 * u, backgroundColor: topHex, borderTopLeftRadius: 12 * u, borderTopRightRadius: 12 * u, borderBottomLeftRadius: dress ? 4 * u : 0, borderBottomRightRadius: dress ? 4 * u : 0, flexDirection: 'row', justifyContent: 'space-between', overflow: 'hidden' }}>
+          {outer && !worn.has('outerwear') && (
             <>
               <View style={{ width: 14 * u, backgroundColor: hex(outer) }} />
               <View style={{ width: 14 * u, backgroundColor: hex(outer) }} />
             </>
           )}
         </View>
-        <View style={{ width: 12 * u, height: 48 * u, marginTop: 2 * u, borderRadius: 6 * u, backgroundColor: outer ? hex(outer) : hex(top) }} />
+        <View style={{ width: 12 * u, height: 48 * u, marginTop: 2 * u, borderRadius: 6 * u, backgroundColor: armHex }} />
       </View>
       {/* legs */}
       <View style={{ flexDirection: 'row', gap: 6 * u }}>
         {[0, 1].map((k) => (
-          <View key={k} style={{ width: 20 * u, height: (dress ? 26 : 50) * u, backgroundColor: dress ? skin : hex(bottom), borderBottomLeftRadius: 4 * u, borderBottomRightRadius: 4 * u }} />
+          <View key={k} style={{ width: 20 * u, height: (dress ? 26 : 50) * u, backgroundColor: legHex, borderBottomLeftRadius: 4 * u, borderBottomRightRadius: 4 * u }} />
         ))}
       </View>
       {/* shoes */}
@@ -98,7 +103,7 @@ export function Avatar({ look, outfit = [], size = 180, label }: { look: AvatarL
           resizeMode="contain"
           importantForAccessibility="no"
           accessibilityElementsHidden
-          style={{ position: 'absolute', left: g.box.x * u, top: g.box.y * u, width: g.box.w * u, height: g.box.h * u }}
+          style={{ position: 'absolute', left: g.drawn.x * u, top: g.drawn.y * u, width: g.drawn.w * u, height: g.drawn.h * u }}
         />
       ))}
     </View>

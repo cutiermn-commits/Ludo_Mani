@@ -7,7 +7,7 @@
 **What the app stores, and where.** Everything below is stored **only on your child's device** (on the web: only in that browser). We, the developer, never receive it:
 - a nickname (no real name), an age band (11–12 or 13–15), style and colour preferences, "runs cold/warm", theme and language;
 - the town chosen for the weather (and the last forecast, cached for about an hour) and any school dress rules typed in;
-- clothing items with optional photos (resized on the device; photo location and other metadata removed);
+- clothing items with optional photos (resized on the device; photo location and other metadata removed) and, where it works, a cut-out of the garment without its background, which the drawn avatar wears;
 - an optional selfie and optional outfit-diary photos. The top part of each photo, where a face usually is, is blurred before saving (there is no automatic face detection; your child can blur the whole photo), and the unblurred original is never saved;
 - outfits, ratings and what the app has learned from them.
 

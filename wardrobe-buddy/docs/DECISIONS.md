@@ -109,3 +109,14 @@ Format: ID · date · decision · why · alternatives · status. Claude Code add
   - The photo screen asks for a plain floor, bed or wall, and the item editor has "Make it wearable" for older photos.
 
   **Limits:** proportions are approximate (garments are scaled to their slot). Cut-out quality depends on the background. It was tested on synthetic and generated photos, not yet on real phone photos (NOT VERIFIED).
+- **D-060 · D-059 review fixes.**
+  - **Critical:** saving an item no longer deletes its new cut-out (`draftsToDiscard`, tested).
+  - **Colour guess:** the cut-out step no longer purges the cache the colour fallback needs.
+  - **Placement:** garments keep their shape (`cutoutAspect`) and hang from the shoulders or waist; shoes stand on the floor. A dress hides tops and bottoms even without a cut-out. The body under a real garment is skin, never a colour block.
+  - **Cut-out checks:**
+    - a gradient is followed only to 1.6×T from the background
+    - cut-outs filling < 22 % of their bounding box are refused
+    - no more than 20 % of the border ring, or 35 % of any one side, may be garment; this refuses a person photographed from the waist up (test)
+    - squared distances, with no allocations in the fill loop
+  - **Size and policy:** web cut-outs are 160 px, and the parent policy mentions cut-outs.
+  - **NOT VERIFIED:** that the image manipulator keeps transparency on Android, and cut-out speed on a real phone.

@@ -16,7 +16,7 @@ export type { PickResult } from './pipeline';
 const PHOTO_WIDTH = Platform.OS === 'web' ? 320 : 900;
 const PHOTO_QUALITY = Platform.OS === 'web' ? 0.5 : 0.75;
 /** Cut-out working/stored width: enough for the avatar, small for storage. ASSUMPTION. */
-const CUTOUT_WIDTH = Platform.OS === 'web' ? 200 : 300;
+const CUTOUT_WIDTH = Platform.OS === 'web' ? 160 : 300;
 const THUMB = 24;
 
 export const pickClothes = (source: 'camera' | 'library'): Promise<PickResult> => pickImage(source, { aspect: [1, 1] });
@@ -25,6 +25,7 @@ export interface ProcessedPhoto {
   photoUri: string;
   /** Garment with transparent background for the avatar; undefined when the background was too busy. */
   cutoutUri?: string;
+  cutoutAspect?: number;
   colors: ColorName[];
 }
 
@@ -32,7 +33,11 @@ export interface ProcessedPhoto {
  * Background cut-out (D-059) from an already saved, metadata-free photo. Returns the stored PNG's
  * URI plus colours read from the garment only, or null when the photo isn't suitable.
  */
-export async function makeCutout(src: Picked, store: PhotoStore): Promise<{ cutoutUri: string; colors: ColorName[] } | null> {
+export async function makeCutout(
+  src: Picked,
+  store: PhotoStore,
+  opts: { purge?: boolean } = {},
+): Promise<{ cutoutUri: string; cutoutAspect: number; colors: ColorName[] } | null> {
   const temps: (string | undefined)[] = [];
   try {
     const png = await resizeAndSave(src, CUTOUT_WIDTH, { format: 'png' });
@@ -47,11 +52,15 @@ export async function makeCutout(src: Picked, store: PhotoStore): Promise<{ cuto
     const small = await resizeAndSave({ uri: raw, width: res.image.width, height: res.image.height }, CUTOUT_WIDTH, { format: 'png' });
     temps.push(small.uri);
     if (!small.base64) return null;
-    return { cutoutUri: await store.save(base64ToBytes(small.base64), 'png'), colors };
+    const cutoutAspect = Math.round((res.image.width / res.image.height) * 1000) / 1000;
+    return { cutoutUri: await store.save(base64ToBytes(small.base64), 'png'), cutoutAspect, colors };
   } catch {
     return null;
   } finally {
-    await cleanUp(store, temps);
+    // Inside processPhoto the caller cleans up at the end: purging here would delete the photo
+    // the colour fallback still needs (privacy audit). Called on its own ("Make it wearable"), purge.
+    if (opts.purge === false) for (const u of temps) if (u) await store.discard(u).catch(() => undefined);
+    else await cleanUp(store, temps);
   }
 }
 
@@ -66,8 +75,8 @@ export async function processPhoto(src: Picked, store: PhotoStore): Promise<Proc
     temps.push(jpeg.uri);
     const photoUri = await saveJpeg(jpeg, store);
 
-    const cut = await makeCutout({ uri: jpeg.uri, width: jpeg.width, height: jpeg.height }, store);
-    if (cut) return { photoUri, cutoutUri: cut.cutoutUri, colors: cut.colors };
+    const cut = await makeCutout({ uri: jpeg.uri, width: jpeg.width, height: jpeg.height }, store, { purge: false });
+    if (cut) return { photoUri, cutoutUri: cut.cutoutUri, cutoutAspect: cut.cutoutAspect, colors: cut.colors };
 
     // No cut-out: colours from a tiny thumbnail of the whole photo.
     let colors: ColorName[] = [];

@@ -59,6 +59,8 @@ export interface ClothingItem {
   photoUri?: string;
   /** Background-removed garment (PNG with transparency) the avatar wears (D-059). Missing when the cut-out failed. */
   cutoutUri?: string;
+  /** Width ÷ height of the cut-out, so the avatar can hang it from the shoulders or waist. */
+  cutoutAspect?: number;
   category: Category;
   subcategory?: Subcategory;
   colors: ColorName[];
