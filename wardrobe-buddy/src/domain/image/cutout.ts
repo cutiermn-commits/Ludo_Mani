@@ -8,8 +8,8 @@ import type { RGBAImage } from './png';
  * 1. The background colour is the median of the photo's border pixels.
  * 2. A flood fill from the border marks background: pixels close to that colour, or close to
  *    their already-filled neighbour (so soft shadows and gradients are followed).
- * 3. The largest remaining region is the garment; specks are dropped, the edge is softened,
- *    and the result is cropped to the garment.
+ * 3. The large remaining regions are the garment (a pair of shoes is two); specks are dropped,
+ *    the edge is softened, and the result is cropped to the garment.
  * 4. A quality check refuses busy backgrounds and garments cut off by the frame; the app then
  *    keeps showing the normal photo tile instead of a bad cut-out.
  * All thresholds are ASSUMPTION starting values, tested on synthetic photos (see tests).
@@ -22,7 +22,9 @@ export const CUTOUT = {
   minForeground: 0.04,
   maxForeground: 0.9,
   maxBorderTouch: 0.3,
-  /** Share of all foreground that must be in the largest region (one garment, not scattered noise). */
+  /** Regions at least this share of all foreground are kept (a pair of shoes or gloves is two). */
+  minKeptRegion: 0.15,
+  /** The kept regions must hold this share of all foreground (garment(s), not scattered noise). */
   minMainRegion: 0.6,
   margin: 3,
 } as const;
@@ -83,10 +85,9 @@ export function cutoutBackground(img: RGBAImage, opts: Partial<typeof CUTOUT> = 
     }
   }
 
-  // 3. Largest foreground region.
+  // 3. Foreground regions.
   const label = new Int32Array(n);
-  let best = 0;
-  let bestSize = 0;
+  const sizes: number[] = [0];
   let fgTotal = 0;
   let next = 0;
   for (let s = 0; s < n; s++) {
@@ -110,18 +111,24 @@ export function cutoutBackground(img: RGBAImage, opts: Partial<typeof CUTOUT> = 
       }
     }
     fgTotal += size;
-    if (size > bestSize) {
-      bestSize = size;
-      best = next;
+    sizes.push(size);
+  }
+  const keepLabel = new Uint8Array(next + 1);
+  let keptSize = 0;
+  for (let l = 1; l <= next; l++) {
+    if (sizes[l] >= o.minKeptRegion * fgTotal) {
+      keepLabel[l] = 1;
+      keptSize += sizes[l];
     }
   }
+  const kept = (p: number) => keepLabel[label[p]] === 1;
 
   // 4. Quality checks.
-  const share = bestSize / n;
-  if (bestSize === 0 || share < o.minForeground) return { ok: false, reason: fgTotal / n > 0.3 ? 'busy-background' : 'no-garment' };
+  const share = keptSize / n;
+  if (keptSize === 0 || share < o.minForeground) return { ok: false, reason: fgTotal / n > 0.3 ? 'busy-background' : 'no-garment' };
   if (share > o.maxForeground) return { ok: false, reason: 'fills-frame' };
-  if (bestSize / fgTotal < o.minMainRegion) return { ok: false, reason: 'busy-background' };
-  const touching = border.filter((p) => label[p] === best).length / border.length;
+  if (keptSize / fgTotal < o.minMainRegion) return { ok: false, reason: 'busy-background' };
+  const touching = border.filter((p) => kept(p)).length / border.length;
   if (touching > o.maxBorderTouch) return { ok: false, reason: 'cut-off' };
 
   // 5. Crop to the garment, transparent background, softened edge.
@@ -130,7 +137,7 @@ export function cutoutBackground(img: RGBAImage, opts: Partial<typeof CUTOUT> = 
   let x1 = 0;
   let y1 = 0;
   for (let p = 0; p < n; p++) {
-    if (label[p] !== best) continue;
+    if (!kept(p)) continue;
     const x = p % w;
     const y = (p - x) / w;
     if (x < x0) x0 = x;
@@ -149,9 +156,8 @@ export function cutoutBackground(img: RGBAImage, opts: Partial<typeof CUTOUT> = 
     for (let x = x0; x <= x1; x++) {
       const p = y * w + x;
       const o4 = ((y - y0) * cw + (x - x0)) * 4;
-      if (label[p] !== best) continue; // stays transparent
-      const edge =
-        (x > 0 && label[p - 1] !== best) || (x < w - 1 && label[p + 1] !== best) || (y > 0 && label[p - w] !== best) || (y < h - 1 && label[p + w] !== best);
+      if (!kept(p)) continue; // stays transparent
+      const edge = (x > 0 && !kept(p - 1)) || (x < w - 1 && !kept(p + 1)) || (y > 0 && !kept(p - w)) || (y < h - 1 && !kept(p + w));
       out[o4] = d[p * 4];
       out[o4 + 1] = d[p * 4 + 1];
       out[o4 + 2] = d[p * 4 + 2];

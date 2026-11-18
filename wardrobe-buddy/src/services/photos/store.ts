@@ -7,12 +7,12 @@ import type { PhotoStore } from './types';
 const photosDir = () => new Directory(Paths.document, 'photos');
 
 export const photoStore: PhotoStore = {
-  async save(jpeg) {
+  async save(bytes, kind = 'jpeg') {
     const dir = photosDir();
     dir.create({ intermediates: true, idempotent: true });
-    const file = new File(dir, `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}.jpg`);
+    const file = new File(dir, `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}.${kind === 'png' ? 'png' : 'jpg'}`);
     file.create();
-    file.write(jpeg);
+    file.write(bytes);
     return file.uri;
   },
   async remove(uri) {

@@ -94,3 +94,18 @@ Format: ID · date · decision · why · alternatives · status. Claude Code add
 - **D-056 · Honest blur wording.** There is no face detection, so the app and the drafts now say "the top of the photo, where your face usually is, is blurred" and point to "Blur the whole photo", which now exists for diary photos too. "Not backed up to the cloud" is now claimed only for Android (`allowBackup:false`). iOS iCloud backup of app documents is NOT VERIFIED and must be decided before the iOS release.
 - **D-057 · Export schema 3.** Photos are keyed by `item:<id>`, `selfie` and `diary:<id>`, and `data` refers to them as `photo:<key>`, so no device file paths leave the phone. Phones write the file photo by photo with `File.write(…, { append: true })`, which never holds the whole export in memory. The file stays in the cache after sharing (the receiving app may still be reading it) and is removed by the start-up sweep. The export has a busy state and an error message.
 - **D-058 · Service-worker updates.** A new deploy keeps the previous version's cache, so a tab still open on the old version can load its old route files. The version is a hash of the file contents. Page loads fall back to the cached app after 3 s on a weak network. The open-tab-after-deploy case was not run as a test (NOT VERIFIED).
+- **D-059 · Decided (owner, 2026-11-18): the avatar wears her own clothes (option B).** The owner asked for the daily suggestion to dress a model with her real clothes. Three options were weighed:
+  - **A. Photo-realistic try-on on her own photo:** rejected. It needs body photos sent to a cloud AI, and body sizing; both break non-negotiables 1–2, PRODUCT.md "out of scope: virtual try-on on a real body, cloud AI", and the store kids' rules.
+  - **B. Avatar wearing her own clothes:** chosen.
+  - **C. Outfit collage only.**
+
+  **How it works:**
+  - Each clothing photo gets an on-device background cut-out (`src/domain/image/cutout.ts`): border-colour flood fill, keeping the large regions (so a pair of shoes works), soft edge, cropped. A quality check refuses busy or patterned backgrounds and garments cut off by the frame.
+  - The cut-out is stored as a PNG next to the photo (`ClothingItem.cutoutUri`; 300 px on phones, 200 px on web) and is covered by the start-up sweep, delete, replace and export.
+  - Colours are read from the garment only when there is a cut-out.
+  - The avatar draws each cut-out in a fixed slot (`garmentLayout.ts`): top, bottoms, dress, jacket over, shoes. The slots are the same for everyone, so there is no body shape, size or "fit" anywhere.
+  - Items without a cut-out keep the colour block.
+  - In the clean style and next to a selfie, an outfit collage of the cut-outs or photos is shown (`OutfitStack`). Clothes are never put onto her real photo.
+  - The photo screen asks for a plain floor, bed or wall, and the item editor has "Make it wearable" for older photos.
+
+  **Limits:** proportions are approximate (garments are scaled to their slot). Cut-out quality depends on the background. It was tested on synthetic and generated photos, not yet on real phone photos (NOT VERIFIED).

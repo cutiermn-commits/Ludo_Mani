@@ -9,7 +9,7 @@ describe('parent export (JSON + photos)', () => {
     const data = {
       ...emptyAppData(),
       profile: { selfieUri: 'file:///var/App/UUID/Documents/photos/s.jpg' },
-      items: [item('a', 'file:///var/App/UUID/Documents/photos/a.jpg'), item('b')],
+      items: [{ ...item('a', 'file:///var/App/UUID/Documents/photos/a.jpg'), cutoutUri: 'file:///var/App/UUID/Documents/photos/a.png' }, item('b')],
       diary: [{ id: 'd', outfitId: 'o', photoUri: 'file:///var/App/UUID/Documents/photos/d.jpg', faceBlurred: true }],
       forecast: { lat: 1, lon: 2, fetchedAt: 'x', days: [] },
     } as never;
@@ -17,7 +17,8 @@ describe('parent export (JSON + photos)', () => {
     const json = await buildExport(data, reader, new Date('2026-11-17T20:00:00Z'));
     const out = JSON.parse(json);
     expect(out).toMatchObject({ app: 'wardrobe-buddy', schema: 3, exportedAt: '2026-11-17T20:00:00.000Z' });
-    expect(Object.keys(out.photos).sort()).toEqual(['diary:d', 'item:a', 'selfie']);
+    expect(Object.keys(out.photos).sort()).toEqual(['cutout:a', 'diary:d', 'item:a', 'selfie']);
+    expect(out.data.items[0].cutoutUri).toBe('photo:cutout:a');
     expect(out.data.items[0].photoUri).toBe('photo:item:a');
     expect(out.data.profile.selfieUri).toBe('photo:selfie');
     expect(out.data.diary[0].photoUri).toBe('photo:diary:d');

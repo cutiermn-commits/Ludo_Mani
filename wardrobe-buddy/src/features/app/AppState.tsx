@@ -100,7 +100,7 @@ export function AppProvider({
       // Start-up sweep: image caches (may hold unblurred or EXIF copies if the app was killed
       // mid-processing) and saved photos nothing refers to (abandoned edits or set-up).
       await photos.purgeCaches().catch(() => undefined);
-      const used = new Set([...data.items.map((i) => i.photoUri), data.profile?.selfieUri, ...data.diary.map((d) => d.photoUri)].filter(Boolean));
+      const used = new Set([...data.items.flatMap((i) => [i.photoUri, i.cutoutUri]), data.profile?.selfieUri, ...data.diary.map((d) => d.photoUri)].filter(Boolean));
       for (const uri of await photos.listSaved().catch(() => [] as string[])) if (!used.has(uri)) await photos.remove(uri).catch(() => undefined);
     });
     return () => {
@@ -167,14 +167,16 @@ export function AppProvider({
         const old = items.find((i) => i.id === item.id);
         const next = items.some((i) => i.id === item.id) ? items.map((i) => (i.id === item.id ? item : i)) : [...items, item];
         await patch('items', next);
-        // Only after the item is saved: delete the photo it no longer uses.
+        // Only after the item is saved: delete the photo and cut-out it no longer uses.
         if (old?.photoUri && old.photoUri !== item.photoUri) await photos.remove(old.photoUri);
+        if (old?.cutoutUri && old.cutoutUri !== item.cutoutUri) await photos.remove(old.cutoutUri);
       },
       deleteItem: async (id) => {
         const gone = ref.current.items.find((i) => i.id === id);
         const next = ref.current.items.filter((i) => i.id !== id);
         await patch('items', next);
         if (gone?.photoUri) await photos.remove(gone.photoUri);
+        if (gone?.cutoutUri) await photos.remove(gone.cutoutUri);
         await patch('learning', pruneLearning(ref.current.learning, new Set(next.map((i) => i.id))));
       },
       saveOutfit: async (o) => {

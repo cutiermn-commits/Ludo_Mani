@@ -67,6 +67,17 @@ describe('cutoutBackground', () => {
     expect(cutoutBackground(photo(200, 200, () => [236, 232, 226], [205, 40, 45], { scale: 2.2 })).ok).toBe(false);
   });
 
+  it('keeps both shoes of a pair (two separate regions)', () => {
+    const w = 200;
+    const img = photo(w, 200, (x, y) => [196 - y * 0.1, 160 - y * 0.1, 120], null);
+    for (let y = 90; y < 160; y++)
+      for (const x0 of [40, 120])
+        for (let x = x0; x < x0 + 40; x++) img.data.set([90, 55, 30, 255], (y * w + x) * 4);
+    const res = cutoutBackground(img);
+    expect(res.ok).toBe(true);
+    if (res.ok) expect(res.image.width).toBeGreaterThan(110); // spans both shoes
+  });
+
   it('refuses a photo with no garment', () => {
     expect(cutoutBackground(photo(200, 200, () => [236, 232, 226], null))).toEqual({ ok: false, reason: 'no-garment' });
   });

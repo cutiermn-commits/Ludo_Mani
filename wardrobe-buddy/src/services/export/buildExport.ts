@@ -2,7 +2,7 @@ import type { AppData } from '@/data/repository';
 
 /**
  * Parent export (PRIVACY_SAFETY §2.9: "JSON + photos"). One JSON file:
- *   { app, schema, exportedAt, data, photos: { "item:<id>" | "selfie" | "diary:<id>": "data:image/jpeg;base64,…" } }
+ *   { app, schema, exportedAt, data, photos: { "item:<id>" | "cutout:<id>" | "selfie" | "diary:<id>": "data:image/…;base64,…" } }
  * In `data`, every photo file path is replaced by `photo:<key>`, so no device paths leave the
  * phone. Selfies and diary photos are embedded as stored, i.e. already blurred. The cached
  * forecast is left out (not hers). Photos already stored inline (web data URIs) stay where they
@@ -19,9 +19,16 @@ const ref = (key: string) => `photo:${key}`;
 export function exportParts(data: AppData, now: Date): { head: string; photos: ExportPhoto[]; tail: string } {
   const photos: ExportPhoto[] = [];
   const items = data.items.map((i) => {
-    if (!isFile(i.photoUri)) return i;
-    photos.push({ key: `item:${i.id}`, uri: i.photoUri });
-    return { ...i, photoUri: ref(`item:${i.id}`) };
+    let out = i;
+    if (isFile(i.photoUri)) {
+      photos.push({ key: `item:${i.id}`, uri: i.photoUri });
+      out = { ...out, photoUri: ref(`item:${i.id}`) };
+    }
+    if (isFile(i.cutoutUri)) {
+      photos.push({ key: `cutout:${i.id}`, uri: i.cutoutUri });
+      out = { ...out, cutoutUri: ref(`cutout:${i.id}`) };
+    }
+    return out;
   });
   const diary = data.diary.map((d) => {
     if (!isFile(d.photoUri)) return d;

@@ -173,3 +173,37 @@ describe('clothing photo pipeline (D-042)', () => {
     expect(failing.purgeCaches).toHaveBeenCalled();
   });
 });
+
+describe('clothing cut-out for the avatar (D-059)', () => {
+  function shirtOnFloor(): RGBAImage {
+    const w = 120;
+    const h = 120;
+    const data = new Uint8Array(w * h * 4);
+    for (let y = 0; y < h; y++)
+      for (let x = 0; x < w; x++) {
+        const shirt = y > 25 && y < 100 && Math.abs(x - 60) < (y < 45 ? 45 : 22);
+        data.set(shirt ? [205, 40, 45, 255] : [236, 232, 226, 255], (y * w + x) * 4);
+      }
+    return { width: w, height: h, data };
+  }
+
+  it('a photo on a plain floor gets a PNG cut-out, colours from the garment, and all temps discarded', async () => {
+    images.set('file:///cache/ImagePicker/shirt.jpg', shirtOnFloor());
+    const store = fakeStore();
+    const res = await processPhoto({ uri: 'file:///cache/ImagePicker/shirt.jpg', width: 120, height: 120 }, store);
+    expect(res.cutoutUri).toBeDefined();
+    expect(res.colors[0]).toBe('red');
+    expect((store.save as jest.Mock).mock.calls.map((c) => c[1] ?? 'jpeg')).toEqual(['jpeg', 'png']);
+    const discarded = (store.discard as jest.Mock).mock.calls.map((c) => c[0] as string);
+    expect(discarded).toContain('file:///cache/ImagePicker/shirt.jpg');
+    expect(discarded.some((u) => u.startsWith('data:image/png'))).toBe(true); // uncompressed intermediate
+    expect(store.purgeCaches).toHaveBeenCalled();
+  });
+
+  it('a busy photo (checkerboard) gets no cut-out but is still saved', async () => {
+    const store = fakeStore();
+    const res = await processPhoto(picked, store);
+    expect(res.cutoutUri).toBeUndefined();
+    expect(store.saved).toHaveLength(1);
+  });
+});

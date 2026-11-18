@@ -33,7 +33,7 @@ In under 30 seconds each morning, she gets one confident outfit suggestion from 
 | F14 | Data controls | Parent can export or delete everything (behind the gate) |
 
 ## Out of scope for v1
-Accounts, cloud sync, sharing, friends/social, shopping or links to shops, virtual try-on on a real body, cloud AI, notifications that nag. Possible later: a gentle morning reminder (opt-in, set by the parent).
+Accounts, cloud sync, sharing, friends/social, shopping or links to shops, virtual try-on on a real body, cloud AI, notifications that nag. (In scope since D-059: the drawn avatar wears cut-outs of her own clothes in standard slots, with no body sizing.) Possible later: a gentle morning reminder (opt-in, set by the parent).
 
 ## Success criteria (measured on-device, with no analytics SDK)
 - She opens it on most school mornings (self-reported in a parent review after 4 weeks)

@@ -1,7 +1,9 @@
-import { View } from 'react-native';
+import { Image, View } from 'react-native';
 
 import type { AvatarLook, ClothingItem } from '@/domain/types';
 import { CLOTHING_HEX } from '@/ui/theme';
+
+import { layoutGarments } from './garmentLayout';
 
 /** Original, simple shapes: no known characters, no body measurements (PRIVACY_SAFETY §2.6, §2.8). */
 export const SKIN_TONES = ['#F6D7C3', '#EBC09F', '#D29E7A', '#A86F4C', '#7B4B2E', '#4E2F1C'];
@@ -11,8 +13,9 @@ export const HAIR_STYLES: AvatarLook['hairStyle'][] = ['short', 'long', 'ponytai
 export const DEFAULT_AVATAR: AvatarLook = { skin: 1, hair: 1, hairStyle: 'long' };
 
 /**
- * Avatar "wearing" the outfit: torso takes the top (or dress) colour, legs the bottom,
- * a jacket shows as side panels, shoes at the bottom. Scales with `size` (height in px).
+ * Avatar wearing the outfit. Garments with a background cut-out are drawn as her real clothes
+ * in standard slots (D-059); for the others the torso takes the top (or dress) colour, the legs
+ * the bottom, a jacket shows as side panels and shoes at the bottom. Scales with `size` (height in px).
  */
 export function Avatar({ look, outfit = [], size = 180, label }: { look: AvatarLook; outfit?: ClothingItem[]; size?: number; label: string }) {
   const u = size / 180;
@@ -25,6 +28,7 @@ export function Avatar({ look, outfit = [], size = 180, label }: { look: AvatarL
   const outer = pick('outerwear');
   const shoes = pick('shoes');
   const hex = (i?: ClothingItem, fallback = '#E9E4EF') => (i ? CLOTHING_HEX[i.colors[0] ?? 'grey'] : fallback);
+  const garments = layoutGarments(outfit);
 
   return (
     <View accessible accessibilityRole="image" accessibilityLabel={label} style={{ width: 120 * u, height: size, alignItems: 'center' }}>
@@ -86,6 +90,17 @@ export function Avatar({ look, outfit = [], size = 180, label }: { look: AvatarL
           <View key={k} style={{ width: 24 * u, height: 9 * u, borderRadius: 5 * u, backgroundColor: hex(shoes, '#6B6470') }} />
         ))}
       </View>
+      {/* Her own clothes (cut-outs), worn in standard slots: D-059. */}
+      {garments.map((g) => (
+        <Image
+          key={g.itemId}
+          source={{ uri: g.uri }}
+          resizeMode="contain"
+          importantForAccessibility="no"
+          accessibilityElementsHidden
+          style={{ position: 'absolute', left: g.box.x * u, top: g.box.y * u, width: g.box.w * u, height: g.box.h * u }}
+        />
+      ))}
     </View>
   );
 }

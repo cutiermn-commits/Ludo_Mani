@@ -7,6 +7,7 @@ import { suggest, swapIn } from '@/engine';
 import { useApp, useTodayWeather } from '@/features/app/AppState';
 import { newId } from '@/features/app/dates';
 import { Avatar } from '@/features/me/Avatar';
+import { OutfitStack } from '@/features/me/OutfitStack';
 import { SelfieImage } from '@/features/me/SelfieCard';
 import { EXTRA_ICON, TIP_KEY, useWhyText } from '@/features/today/text';
 import { WeatherStrip } from '@/features/today/WeatherStrip';
@@ -115,9 +116,14 @@ export default function Today() {
           <DropIn trigger={currentIds.join(',')}>
             <View style={{ flexDirection: 'row', gap: space.lg, alignItems: 'center' }}>
               {profile.useSelfie && profile.selfieUri ? (
-                <SelfieImage uri={profile.selfieUri} size={150} label={t('selfie.a11y')} />
+                <View style={{ gap: space.sm, alignItems: 'center' }}>
+                  <SelfieImage uri={profile.selfieUri} size={120} label={t('selfie.a11y')} />
+                  <OutfitStack items={current} width={110} label={t('avatar.wearing', { items: current.map(nameOf).join(', ') })} />
+                </View>
+              ) : showAvatar ? (
+                <Avatar look={profile.avatar} outfit={current} size={190} label={t('avatar.wearing', { items: current.map(nameOf).join(', ') })} />
               ) : (
-                showAvatar && <Avatar look={profile.avatar} outfit={current} size={170} label={t('avatar.wearing', { items: current.map(nameOf).join(', ') })} />
+                <OutfitStack items={current} width={140} label={t('avatar.wearing', { items: current.map(nameOf).join(', ') })} />
               )}
               <View style={{ flex: 1, gap: space.sm }}>
                 <Row wrap style={{ alignItems: 'flex-start' }}>

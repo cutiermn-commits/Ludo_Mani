@@ -55,8 +55,10 @@ export type Warmth = 1 | 2 | 3 | 4 | 5;
 
 export interface ClothingItem {
   id: string;
-  /** Local sandbox URI. Undefined until photo capture lands (Phase 3, needs owner approval for the camera permission). */
+  /** Local sandbox URI of the clothing photo (JPEG, metadata stripped). */
   photoUri?: string;
+  /** Background-removed garment (PNG with transparency) the avatar wears (D-059). Missing when the cut-out failed. */
+  cutoutUri?: string;
   category: Category;
   subcategory?: Subcategory;
   colors: ColorName[];

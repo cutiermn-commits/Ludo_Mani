@@ -1,6 +1,6 @@
 # Copy review: Danish and English (D-011)
 
-Generated from `src/i18n/*.json` by `scripts/copy-review.mjs`. 325 strings.
+Generated from `src/i18n/*.json` by `scripts/copy-review.mjs`. 329 strings.
 
 For the reviewer: read the Danish column aloud. Is it natural for an 11–15-year-old in Denmark? Mark anything odd in the "Note" column. `{name}` placeholders are filled in by the app. Things to check especially: item names ("hættetrøje i grå"), the "Why this?" sentences (`why.*`), and words kept the same as English (beige, jeans, Sporty).
 
@@ -109,6 +109,15 @@ For the reviewer: read the Danish column aloud. Is it natural for an 11–15-yea
 | `consent.switch` | Allow weather lookups | Tillad vejropslag | |
 | `consent.title` | Weather lookups | Vejropslag | |
 | `consent.yes` | Yes, look up the weather | Ja, slå vejret op | |
+
+## cutout
+
+| Key | English | Dansk | Note |
+|---|---|---|---|
+| `cutout.failed` | I could not cut this one out, so the avatar shows its colour instead. Try a photo on a plain background. | Jeg kunne ikke klippe det ud, så avataren viser farven i stedet. Prøv et billede med en ensfarvet baggrund. | |
+| `cutout.make` | Make it wearable | Gør det klar til avataren | |
+| `cutout.ok` | Cut out! Your avatar can wear this now. | Klippet ud! Din avatar kan tage det på nu. | |
+| `cutout.previewA11y` | Cut-out of the clothes for your avatar | Udklip af tøjet til din avatar | |
 
 ## diary
 
@@ -268,7 +277,7 @@ For the reviewer: read the Danish column aloud. Is it natural for an 11–15-yea
 | Key | English | Dansk | Note |
 |---|---|---|---|
 | `photo.choose` | Choose a photo | Vælg et billede | |
-| `photo.clothesOnly` | Take photos of clothes only, not people. Lay it flat or hang it up. | Tag kun billeder af tøj, ikke af personer. Læg det fladt, eller hæng det op. | |
+| `photo.clothesOnly` | Lay it flat on a plain floor or bed, or hang it against a plain wall, so your avatar can wear it. Clothes only, no people. | Læg det fladt på et ensfarvet gulv eller en seng, eller hæng det op mod en ensfarvet væg, så din avatar kan tage det på. Kun tøj, ingen personer. | |
 | `photo.colorsGuessed` | I guessed the colours from the photo. Change them if they are wrong. | Jeg har gættet farverne ud fra billedet. Ret dem, hvis de er forkerte. | |
 | `photo.denied` | No camera, no problem: choose a photo instead, or skip it. | Intet kamera, intet problem: vælg et billede i stedet, eller spring over. | |
 | `photo.deniedForever` | The camera is turned off for this app. A grown-up can turn it on in the phone's settings. | Kameraet er slået fra for denne app. En voksen kan slå det til i telefonens indstillinger. | |

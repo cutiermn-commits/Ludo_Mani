@@ -24,7 +24,8 @@ export async function shareExport(data: AppData, now: Date, dialogTitle: string)
     for (const p of photos) {
       const photo = new File(p.uri);
       if (!photo.exists) continue;
-      file.write(photoEntry(p.key, `data:image/jpeg;base64,${await photo.base64()}`, first), { append: true });
+      const mime = p.uri.endsWith('.png') ? 'image/png' : 'image/jpeg';
+      file.write(photoEntry(p.key, `data:${mime};base64,${await photo.base64()}`, first), { append: true });
       first = false;
     }
     file.write(tail, { append: true });

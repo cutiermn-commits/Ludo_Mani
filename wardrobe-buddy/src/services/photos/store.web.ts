@@ -6,8 +6,8 @@ import { bytesToBase64 } from '@/domain/image/base64';
 import type { PhotoStore } from './types';
 
 export const photoStore: PhotoStore = {
-  async save(jpeg) {
-    return `data:image/jpeg;base64,${bytesToBase64(jpeg)}`;
+  async save(bytes, kind = 'jpeg') {
+    return `data:image/${kind};base64,${bytesToBase64(bytes)}`;
   },
   async remove() {},
   async removeAll() {},

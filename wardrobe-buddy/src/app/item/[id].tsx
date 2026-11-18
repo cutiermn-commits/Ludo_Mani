@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Switch, View } from 'react-native';
+import { Image, Switch, View } from 'react-native';
 
 import {
   CATEGORIES,
@@ -18,7 +18,7 @@ import { newId } from '@/features/app/dates';
 import { ColorPicker } from '@/features/me/pickers';
 import { ItemTile, itemIcon } from '@/features/wardrobe/visuals';
 import { PhotoStatus, usePhotoAction } from '@/features/photos/PhotoAction';
-import { pickClothes, processPhoto } from '@/services/photos/capture';
+import { makeCutout, pickClothes, processPhoto } from '@/services/photos/capture';
 import type { TKey } from '@/i18n';
 import { Button, Card, Chip, Row, Screen, T } from '@/ui/components';
 import { space } from '@/ui/theme';
@@ -39,6 +39,8 @@ export default function ItemEditor() {
   const drafts = useRef<string[]>([]);
   const saved = useRef(false);
   const [guessed, setGuessed] = useState(false);
+  /** Result of the last cut-out attempt in this edit (null = none tried). */
+  const [cutout, setCutout] = useState<'ok' | 'failed' | null>(null);
   const [saveFailed, setSaveFailed] = useState(false);
   const c = useTheme();
   const existing = items.find((i) => i.id === id);
@@ -93,10 +95,26 @@ export default function ItemEditor() {
     action.run(
       () => pickClothes(source),
       (p) => processPhoto(p, photos),
-      ({ photoUri, colors }) => {
+      ({ photoUri, cutoutUri, colors }) => {
         drafts.current.push(photoUri);
+        if (cutoutUri) drafts.current.push(cutoutUri);
         setGuessed(colors.length > 0);
-        setItem((x) => ({ ...x, photoUri, colors: x.colors.length ? x.colors : colors }));
+        setCutout(cutoutUri ? 'ok' : 'failed');
+        setItem((x) => ({ ...x, photoUri, cutoutUri, colors: x.colors.length ? x.colors : colors }));
+      },
+    );
+
+  /** For photos added before cut-outs existed, or to try again. Keeps the photo. */
+  const recut = () =>
+    item.photoUri &&
+    action.run(
+      async () => ({ kind: 'ok' as const, uri: item.photoUri!, width: 0, height: 0 }),
+      (p) => makeCutout(p, photos),
+      (res) => {
+        if (!res) return setCutout('failed');
+        drafts.current.push(res.cutoutUri);
+        setCutout('ok');
+        setItem((x) => ({ ...x, cutoutUri: res.cutoutUri }));
       },
     );
 
@@ -123,8 +141,22 @@ export default function ItemEditor() {
           <Row wrap>
             <Chip icon="📷" label={t('photo.take')} onPress={() => action.withCameraIntro(() => void addPhoto('camera'))} />
             <Chip icon="🖼️" label={t('photo.choose')} onPress={() => void addPhoto('library')} />
-            {item.photoUri && <Chip icon="✖️" label={t('photo.remove')} onPress={() => set({ photoUri: undefined })} />}
+            {item.photoUri && !item.cutoutUri && <Chip icon="✂️" label={t('cutout.make')} onPress={() => void recut()} />}
+            {item.photoUri && <Chip icon="✖️" label={t('photo.remove')} onPress={() => set({ photoUri: undefined, cutoutUri: undefined })} />}
           </Row>
+        )}
+        {cutout === 'ok' && item.cutoutUri && (
+          <Row style={{ gap: space.md }}>
+            <Image source={{ uri: item.cutoutUri }} style={{ width: 64, height: 64 }} resizeMode="contain" accessibilityLabel={t('cutout.previewA11y')} />
+            <T variant="small" style={{ flex: 1 }}>
+              {t('cutout.ok')}
+            </T>
+          </Row>
+        )}
+        {cutout === 'failed' && (
+          <T variant="small" muted>
+            {t('cutout.failed')}
+          </T>
         )}
         {item.photoUri && guessed && (
           <T variant="small" muted>
