@@ -58,6 +58,14 @@ describe('host allowlist', () => {
       .filter((f) => /\bfetch\s*\(|\.fetch\b|XMLHttpRequest|WebSocket|sendBeacon|EventSource|createDownloadTask|createUploadTask|\.upload\s*\(|downloadAsync|uploadAsync/.test(fs.readFileSync(f, 'utf8')));
     expect(offenders).toEqual([]);
   });
+
+  it('no remote SVGs, remote assets or remote web pages (react-native-svg, expo-asset, WebView)', () => {
+    const offenders = walk(SRC).filter((f) => {
+      const src = fs.readFileSync(f, 'utf8');
+      return /\bSvg(Css)?Uri\b|\bSvgFromUri\b|fromURI\s*\(|Asset\.fromURI|source=\{\{\s*uri:\s*['"`]https?:|src:\s*['"`]https?:/.test(src);
+    });
+    expect(offenders).toEqual([]);
+  });
 });
 
 describe('dependencies', () => {

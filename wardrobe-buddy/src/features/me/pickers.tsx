@@ -1,14 +1,13 @@
 import { Pressable, View } from 'react-native';
 
-import { COLORS, type AvatarLook, type ColorName, type Locale, type StylePref, type ThemeName } from '@/domain/types';
+import { AVATAR_HEIGHTS, HAIR_ACCESSORIES, type AvatarBuild, type AvatarLook, type Locale, type ThemeName } from '@/domain/types';
 import { useApp } from '@/features/app/AppState';
-import { Swatch } from '@/features/wardrobe/visuals';
 import type { TKey } from '@/i18n';
 import { Chip, Row, T } from '@/ui/components';
 import { PALETTES, space, THEME_NAMES } from '@/ui/theme';
 import { useTheme } from '@/ui/useTheme';
 
-import { Avatar, HAIR_COLORS, HAIR_STYLES, SKIN_TONES } from './Avatar';
+import { Avatar, EYE_COLORS, HAIR_COLORS, HAIR_STYLES, SKIN_TONES } from './Avatar';
 
 export function LanguagePicker({ value, onChange }: { value: Locale; onChange: (l: Locale) => void }) {
   const { t } = useApp();
@@ -21,25 +20,10 @@ export function LanguagePicker({ value, onChange }: { value: Locale; onChange: (
   );
 }
 
-export function StylePrefPicker({ value, onChange }: { value: StylePref; onChange: (s: StylePref) => void }) {
-  const { t } = useApp();
-  const opts: { v: StylePref; icon: string }[] = [
-    { v: 'dresses', icon: '👗' },
-    { v: 'trousers', icon: '👖' },
-    { v: 'mix', icon: '✨' },
-  ];
-  return (
-    <View style={{ gap: space.sm }}>
-      {opts.map((o) => (
-        <Chip key={o.v} icon={o.icon} label={t(`stylePref.${o.v}` as TKey)} selected={value === o.v} onPress={() => onChange(o.v)} />
-      ))}
-    </View>
-  );
-}
-
 export function AvatarMaker({ value, onChange }: { value: AvatarLook; onChange: (a: AvatarLook) => void }) {
   const { t } = useApp();
   const c = useTheme();
+  const set = (p: Partial<AvatarLook>) => onChange({ ...value, ...p });
   const dot = (hex: string, selected: boolean, label: string, onPress: () => void) => (
     <Pressable
       key={hex + label}
@@ -50,20 +34,58 @@ export function AvatarMaker({ value, onChange }: { value: AvatarLook; onChange: 
       style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: hex, borderWidth: selected ? 4 : 1.5, borderColor: selected ? c.primary : c.border }}
     />
   );
+  /** Drawn choices for height and build: she picks a picture, never a number (D-062). */
+  const shape = (look: AvatarLook, selected: boolean, label: string, onPress: () => void) => (
+    <Pressable
+      key={label}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={{ alignItems: 'center', justifyContent: 'flex-end', padding: 4, borderRadius: 16, borderWidth: selected ? 3 : 1.5, borderColor: selected ? c.primary : c.border, backgroundColor: c.surface }}>
+      <Avatar look={look} size={96} label="" />
+    </Pressable>
+  );
+  const toggle = (key: 'glasses' | 'freckles' | 'earrings', icon: string) => (
+    <Chip key={key} icon={icon} label={t(`avatar.${key}` as TKey)} selected={!!value[key]} onPress={() => set({ [key]: !value[key] })} />
+  );
   return (
     <View style={{ gap: space.md, alignItems: 'center' }}>
-      <Avatar look={value} size={170} label={t('avatar.preview')} />
+      <Avatar look={value} size={240} label={t('avatar.preview')} />
       <T variant="label">{t('avatar.skin')}</T>
       <Row wrap style={{ justifyContent: 'center' }}>
-        {SKIN_TONES.map((h, i) => dot(h, value.skin === i, t('avatar.skinN', { n: i + 1 }), () => onChange({ ...value, skin: i })))}
+        {SKIN_TONES.map((h, i) => dot(h, value.skin === i, t('avatar.skinN', { n: i + 1 }), () => set({ skin: i })))}
       </Row>
       <T variant="label">{t('avatar.hair')}</T>
       <Row wrap style={{ justifyContent: 'center' }}>
-        {HAIR_COLORS.map((h, i) => dot(h, value.hair === i, t('avatar.hairN', { n: i + 1 }), () => onChange({ ...value, hair: i })))}
+        {HAIR_COLORS.map((h, i) => dot(h, value.hair === i, t('avatar.hairN', { n: i + 1 }), () => set({ hair: i })))}
       </Row>
       <Row wrap style={{ justifyContent: 'center' }}>
         {HAIR_STYLES.map((s) => (
-          <Chip key={s} label={t(`avatar.style.${s}` as TKey)} selected={value.hairStyle === s} onPress={() => onChange({ ...value, hairStyle: s })} />
+          <Chip key={s} label={t(`avatar.style.${s}` as TKey)} selected={value.hairStyle === s} onPress={() => set({ hairStyle: s })} />
+        ))}
+      </Row>
+      <T variant="label">{t('avatar.eyes')}</T>
+      <Row wrap style={{ justifyContent: 'center' }}>
+        {EYE_COLORS.map((h, i) => dot(h, (value.eyes ?? 1) === i, t('avatar.eyesN', { n: i + 1 }), () => set({ eyes: i })))}
+      </Row>
+      <T variant="label">{t('avatar.height')}</T>
+      <Row wrap style={{ justifyContent: 'center', alignItems: 'flex-end' }}>
+        {AVATAR_HEIGHTS.map((h) => shape({ ...value, height: h }, (value.height ?? 'medium') === h, t(`avatar.height.${h}` as TKey), () => set({ height: h })))}
+      </Row>
+      <T variant="label">{t('avatar.build')}</T>
+      <Row wrap style={{ justifyContent: 'center', alignItems: 'flex-end' }}>
+        {([1, 2, 3] as AvatarBuild[]).map((b) => shape({ ...value, build: b }, (value.build ?? 2) === b, t('avatar.buildN', { n: b }), () => set({ build: b })))}
+      </Row>
+      <T variant="label">{t('avatar.extras')}</T>
+      <Row wrap style={{ justifyContent: 'center' }}>
+        {toggle('glasses', '👓')}
+        {toggle('freckles', '✨')}
+        {toggle('earrings', '💛')}
+      </Row>
+      <Row wrap style={{ justifyContent: 'center' }}>
+        {HAIR_ACCESSORIES.map((a) => (
+          <Chip key={a} label={t(`avatar.acc.${a}` as TKey)} selected={(value.accessory ?? 'none') === a} onPress={() => set({ accessory: a })} />
         ))}
       </Row>
     </View>
@@ -96,28 +118,6 @@ export function ThemePicker({ value, onChange }: { value: ThemeName; onChange: (
           <T variant="small">{t(`theme.${name}` as TKey)}</T>
         </Pressable>
       ))}
-    </Row>
-  );
-}
-
-export function ColorPicker({ value, onChange, labelKey }: { value: ColorName[]; onChange: (c: ColorName[]) => void; labelKey: TKey }) {
-  const { t } = useApp();
-  return (
-    <Row wrap>
-      {COLORS.map((col) => {
-        const selected = value.includes(col);
-        return (
-          <Pressable
-            key={col}
-            accessibilityRole="checkbox"
-            accessibilityLabel={t(labelKey, { color: t(`color.${col}` as TKey) })}
-            accessibilityState={{ checked: selected }}
-            onPress={() => onChange(selected ? value.filter((x) => x !== col) : [...value, col])}
-            style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
-            <Swatch color={col} size={34} selected={selected} />
-          </Pressable>
-        );
-      })}
     </Row>
   );
 }

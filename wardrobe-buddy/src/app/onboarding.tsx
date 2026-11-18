@@ -2,33 +2,30 @@ import { Redirect, router } from 'expo-router';
 import { useState } from 'react';
 import { TextInput, View } from 'react-native';
 
-import type { AgeBand, AvatarLook, City, Locale, Profile, StylePref } from '@/domain/types';
+import type { AgeBand, AvatarLook, City, Locale, Profile } from '@/domain/types';
 import { useApp } from '@/features/app/AppState';
 import { newId } from '@/features/app/dates';
 import { DEFAULT_AVATAR } from '@/features/me/Avatar';
-import { AvatarMaker, LanguagePicker, StylePrefPicker } from '@/features/me/pickers';
-import { SelfieCard } from '@/features/me/SelfieCard';
+import { AvatarMaker, LanguagePicker } from '@/features/me/pickers';
 import { ParentalGate } from '@/features/parent/ParentalGate';
 import { CitySearch } from '@/features/weather/CitySearch';
 import { Button, Card, Chip, Row, Screen, T } from '@/ui/components';
 import { radius, space, TAP } from '@/ui/theme';
 import { useTheme } from '@/ui/useTheme';
 
-const STEPS = ['language', 'parent', 'nickname', 'style', 'avatar', 'city'] as const;
+const STEPS = ['language', 'parent', 'nickname', 'avatar', 'city'] as const;
 type Step = (typeof STEPS)[number];
 
-/** Parent-led setup (PRIVACY_SAFETY §1: one flow for all ages 11–15). ≤ 6 steps, skippable after step 3. */
+/** Parent-led setup (PRIVACY_SAFETY §1: one flow for all ages 11–15). 5 short steps, skippable after step 3. */
 export default function Onboarding() {
   const { t, locale, setLocale, saveProfile, profile: existing } = useApp();
   const c = useTheme();
   const [step, setStep] = useState<Step>('language');
   const [nickname, setNickname] = useState('');
   const [ageBand, setAgeBand] = useState<AgeBand | null>(null);
-  const [stylePref, setStylePref] = useState<StylePref>('mix');
   const [avatar, setAvatar] = useState<AvatarLook>(DEFAULT_AVATAR);
   const [city, setCity] = useState<City | undefined>();
   const [gatePassed, setGatePassed] = useState(false);
-  const [selfieUri, setSelfieUri] = useState<string | undefined>();
   const [consent, setConsent] = useState<boolean | null>(null);
 
   const index = STEPS.indexOf(step);
@@ -42,7 +39,7 @@ export default function Onboarding() {
       nickname: nickname.trim(),
       ageBand: band,
       uiStyle: band === '11-12' ? 'playful' : 'clean',
-      stylePref,
+      stylePref: 'mix',
       likedColors: [],
       dislikedColors: [],
       tempOffsetC: 0,
@@ -52,8 +49,7 @@ export default function Onboarding() {
       avatar,
       city: consent ? city : undefined,
       weatherConsent: consent === true,
-      selfieUri,
-      useSelfie: !!selfieUri,
+      useSelfie: false,
     };
     await saveProfile(profile);
     router.replace('/wardrobe');
@@ -130,20 +126,13 @@ export default function Onboarding() {
         </Card>
       )}
 
-      {step === 'style' && (
-        <Card>
-          <T variant="heading">{t('onboarding.styleTitle')}</T>
-          <T muted>{t('onboarding.styleHint')}</T>
-          <StylePrefPicker value={stylePref} onChange={setStylePref} />
-          <Button label={t('common.next')} onPress={next} />
-        </Card>
-      )}
-
       {step === 'avatar' && (
         <Card>
           <T variant="heading">{t('onboarding.avatarTitle')}</T>
           <AvatarMaker value={avatar} onChange={setAvatar} />
-          <SelfieCard value={selfieUri} onChange={setSelfieUri} />
+          <T variant="small" muted>
+            {t('onboarding.photoLater')}
+          </T>
           <Button label={t('common.next')} onPress={next} />
         </Card>
       )}

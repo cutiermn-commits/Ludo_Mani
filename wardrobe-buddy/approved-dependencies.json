@@ -5,6 +5,10 @@
       "network": "none in the app bundle for our usage (no expo-updates, no expo-insights installed)",
       "why": "framework (D-002)"
     },
+    "expo-asset": {
+      "network": "bundled assets only: in release builds Asset.loadAsync copies a file out of the app package (in development it comes from the local dev server). We never pass it a remote URL (test)",
+      "why": "locates the bundled offline pose page (D-064); part of Expo SDK 58"
+    },
     "expo-constants": {
       "network": "none",
       "why": "required by expo-router"
@@ -89,13 +93,27 @@
       "network": "none",
       "why": "navigation"
     },
+    "react-native-svg": {
+      "network": "our use: none. Its SvgUri/SvgCssUri components can fetch a remote SVG; we never use them (test bans them in src/). Checked 2026-11-18: fetch only in src/xml.tsx, src/css/css.tsx, src/utils/fetchData.ts (those components)",
+      "why": "the rich drawn avatar (D-062); bundled with Expo SDK 58 (15.16.0)"
+    },
     "react-native-web": {
       "network": "none",
       "why": "web target"
+    },
+    "react-native-webview": {
+      "network": "a browser view: it loads only our bundled offline pose page (file URI), navigation elsewhere is refused (onShouldStartLoadWithRequest), and the page's CSP is default-src 'none' (test). No remote content",
+      "why": "runs the on-device pose model with a JIT JavaScript engine on phones (D-064); bundled with Expo SDK 58 (14.0.1)"
     },
     "react-native-worklets": {
       "network": "none",
       "why": "peer of reanimated"
     }
+  },
+  "buildOnly": {
+    "@tensorflow/tfjs-core, @tensorflow/tfjs-backend-cpu, @tensorflow/tfjs-converter (4.22.0)": "devDependencies, bundled into assets/pose/pose.html by scripts/build-pose.mjs (D-064). Checked 2026-11-18: only documentation URLs in the build output; models are loaded from memory (tf.io.fromMemory), never fetched. Apache-2.0",
+    "esbuild": "devDependency, build tool for the pose page only",
+    "vendor/movenet (model files)": "MoveNet SinglePose Lightning v4 (Google, Apache-2.0) converted to TF.js by @vladmandic/human-models 3.0.4 (MIT); copied from the npm tarball, sha256 in DECISIONS D-064",
+    "REJECTED: @mediapipe/tasks-vision": "its web bundle posts usage logs to odml.pa.googleapis.com/v1/log (found 2026-11-18): third-party telemetry, not allowed (CLAUDE.md non-negotiables 1, 2)"
   }
 }

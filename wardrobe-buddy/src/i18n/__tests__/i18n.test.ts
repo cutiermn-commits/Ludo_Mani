@@ -1,10 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { CATEGORIES, COLORS, EXTRA_KINDS, MOODS, RATING_REASONS, STYLE_PREFS, STYLE_TAGS, SUBCATEGORIES } from '@/domain/types';
+import { AVATAR_HEIGHTS, CATEGORIES, COLORS, EXTRA_KINDS, HAIR_ACCESSORIES, HAIR_STYLE_IDS, MOODS, RATING_REASONS, STYLE_PREFS, STYLE_TAGS, SUBCATEGORIES } from '@/domain/types';
 import { BANDS } from '@/engine';
-import type { Tip } from '@/engine';
-import { TIP_KEY } from '@/features/today/text';
 import { THEME_NAMES } from '@/ui/theme';
 
 import da from '../da.json';
@@ -39,17 +37,14 @@ describe('every domain value has a label in both languages', () => {
     ...THEME_NAMES.map((t) => `theme.${t}`),
     ...BANDS.map((b) => `why.band.${b.name}`),
     ...[1, 2, 3, 4, 5].map((w) => `warmth.${w}`),
-    ...(Object.values(TIP_KEY) as string[]),
     ...(['system', 'light', 'dark'] as const).map((m) => `themeMode.${m}`),
-    ...(['short', 'long', 'ponytail', 'buns'] as const).map((s) => `avatar.style.${s}`),
+    ...HAIR_STYLE_IDS.map((s) => `avatar.style.${s}`),
+    ...HAIR_ACCESSORIES.map((a) => `avatar.acc.${a}`),
+    ...AVATAR_HEIGHTS.map((h) => `avatar.height.${h}`),
   ];
   it.each(need)('%s', (key) => {
     expect(en).toHaveProperty([key]);
     expect(da).toHaveProperty([key]);
-  });
-  it('covers every tip', () => {
-    const tips: Tip[] = ['needWeather', 'emptyWardrobe', 'allInLaundry', 'addTopsAndBottoms', 'addOuterwear', 'addRainJacket', 'addShoes', 'addWarmerClothes', 'addLighterClothes'];
-    expect(Object.keys(TIP_KEY).sort()).toEqual(tips.sort());
   });
 });
 

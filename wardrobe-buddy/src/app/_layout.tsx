@@ -5,6 +5,7 @@ import * as SystemUI from 'expo-system-ui';
 import { useEffect } from 'react';
 
 import { AppProvider, useApp } from '@/features/app/AppState';
+import { PoseProvider } from '@/services/pose/PoseProvider';
 import { useTheme } from '@/ui/useTheme';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
@@ -34,7 +35,6 @@ function RootStack() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
         <Stack.Screen name="item/[id]" options={{ presentation: 'modal', title: t('item.title') }} />
-        <Stack.Screen name="rate/[outfitId]" options={{ presentation: 'modal', title: t('rate.title') }} />
         <Stack.Screen name="parent" options={{ title: t('parent.title') }} />
       </Stack>
     </>
@@ -44,7 +44,9 @@ function RootStack() {
 export default function RootLayout() {
   return (
     <AppProvider>
-      <RootStack />
+      <PoseProvider>
+        <RootStack />
+      </PoseProvider>
     </AppProvider>
   );
 }

@@ -1,49 +1,37 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Image, Switch, View } from 'react-native';
+import { Image, View } from 'react-native';
 
-import {
-  CATEGORIES,
-  STYLE_TAGS,
-  SUBCATEGORIES,
-  type Category,
-  type ClothingItem,
-  type ColorName,
-  type StyleTag,
-  type Subcategory,
-  type Warmth,
-} from '@/domain/types';
+import { SUBCATEGORIES, type Category, type ClothingItem, type Subcategory } from '@/domain/types';
 import { useApp } from '@/features/app/AppState';
 import { newId } from '@/features/app/dates';
-import { ColorPicker } from '@/features/me/pickers';
+import { PhotoStatus, usePhotoAction } from '@/features/photos/PhotoAction';
 import { draftsToDiscard } from '@/features/wardrobe/drafts';
 import { ItemTile, itemIcon } from '@/features/wardrobe/visuals';
-import { PhotoStatus, usePhotoAction } from '@/features/photos/PhotoAction';
-import { makeCutout, pickClothes, processPhoto } from '@/services/photos/capture';
 import type { TKey } from '@/i18n';
+import { makeCutout, pickClothes, processPhoto } from '@/services/photos/capture';
 import { Button, Card, Chip, Row, Screen, T } from '@/ui/components';
 import { space } from '@/ui/theme';
-import { useTheme } from '@/ui/useTheme';
 
-/** Sensible starting warmth per type, so adding an item is 3 taps. ASSUMPTION. */
-const DEFAULT_WARMTH: Partial<Record<Subcategory, Warmth>> = {
-  tshirt: 1, top: 1, shirt: 2, sweater: 3, hoodie: 3, shorts: 1, skirt: 2, leggings: 2, jeans: 3, trousers: 3,
-  dress: 2, cardigan: 2, raincoat: 2, jacket: 3, coat: 4, puffer: 5, sandals: 1, sneakers: 2, shoes: 2, boots: 4,
-};
+/** Types she can choose, in the order of her body (accessories aren't worn on the picture). */
+const WEARABLE: Category[] = ['top', 'outerwear', 'dress', 'bottom', 'shoes'];
+const TYPES: { sub: Subcategory; category: Category }[] = WEARABLE.flatMap((category) => SUBCATEGORIES[category].map((sub) => ({ sub: sub as Subcategory, category })));
 
-/** Add or edit a clothing item, optionally with a photo (Phase 3; camera permission approved by the owner 2026-11-17, D-042). */
+/**
+ * Add or change a piece of clothing (D-061, simple flow): a photo and what it is. Nothing else to
+ * fill in. Colours are guessed from the photo in the background (only used to draw clothes whose
+ * photo couldn't be cut out). Camera permission approved by the owner 2026-11-17 (D-042).
+ */
 export default function ItemEditor() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t, items, upsertItem, deleteItem, photos } = useApp();
   const action = usePhotoAction();
-  /** Photos made during this edit. On save all but the kept one are deleted; on leaving without saving, all are. */
+  /** Photos made during this edit. On save all but the kept ones are deleted; on leaving without saving, all are. */
   const drafts = useRef<string[]>([]);
   const saved = useRef(false);
-  const [guessed, setGuessed] = useState(false);
   /** Result of the last cut-out attempt in this edit (null = none tried). */
   const [cutout, setCutout] = useState<'ok' | 'failed' | null>(null);
   const [saveFailed, setSaveFailed] = useState(false);
-  const c = useTheme();
   const existing = items.find((i) => i.id === id);
   const [item, setItem] = useState<ClothingItem>(
     () =>
@@ -52,22 +40,17 @@ export default function ItemEditor() {
         category: 'top',
         subcategory: 'tshirt',
         colors: [],
-        warmth: 1,
+        warmth: 2,
         waterproof: false,
         windproof: false,
         styleTags: [],
-        occasions: ['school'],
+        occasions: [],
         favorite: false,
         inLaundry: false,
         createdAt: new Date().toISOString(),
       },
   );
   const set = (p: Partial<ClothingItem>) => setItem((x) => ({ ...x, ...p }));
-
-  const pickCategory = (cat: Category) => {
-    const sub = SUBCATEGORIES[cat][0] as Subcategory;
-    set({ category: cat, subcategory: sub, warmth: DEFAULT_WARMTH[sub] ?? item.warmth });
-  };
 
   const save = async () => {
     // Mark as saved before navigating, so the unmount cleanup can never delete the kept photo.
@@ -99,9 +82,9 @@ export default function ItemEditor() {
       ({ photoUri, cutoutUri, cutoutAspect, colors }) => {
         drafts.current.push(photoUri);
         if (cutoutUri) drafts.current.push(cutoutUri);
-        setGuessed(colors.length > 0);
         setCutout(cutoutUri ? 'ok' : 'failed');
-        setItem((x) => ({ ...x, photoUri, cutoutUri, cutoutAspect, colors: x.colors.length ? x.colors : colors }));
+        // A new photo is a new garment shape: her old position tweaks no longer apply.
+        setItem((x) => ({ ...x, photoUri, cutoutUri, cutoutAspect, colors, fit: undefined }));
       },
     );
 
@@ -115,123 +98,51 @@ export default function ItemEditor() {
         if (!res) return setCutout('failed');
         drafts.current.push(res.cutoutUri);
         setCutout('ok');
-        setItem((x) => ({ ...x, cutoutUri: res.cutoutUri, cutoutAspect: res.cutoutAspect }));
+        setItem((x) => ({ ...x, cutoutUri: res.cutoutUri, cutoutAspect: res.cutoutAspect, fit: undefined }));
       },
     );
 
-  const toggle = (label: string, value: boolean, onChange: (v: boolean) => void) => (
-    <Row style={{ justifyContent: 'space-between', minHeight: 44 }}>
-      <T>{label}</T>
-      <Switch accessibilityLabel={label} value={value} onValueChange={onChange} trackColor={{ true: c.primary, false: c.border }} />
-    </Row>
-  );
-
   return (
     <Screen>
-      <View style={{ alignItems: 'center' }}>
-        <ItemTile item={item.colors.length ? item : { ...item, colors: ['grey'] }} size={160} />
-      </View>
-
       <Card>
-        <T variant="label">{t('photo.title')}</T>
+        <T variant="heading">{t('item.step1')}</T>
         <T variant="small" muted>
           {t('photo.clothesOnly')}
         </T>
+        <View style={{ alignItems: 'center' }}>
+          {item.cutoutUri ? (
+            <Image source={{ uri: item.cutoutUri }} style={{ width: 180, height: 180 }} resizeMode="contain" accessibilityLabel={t('cutout.previewA11y')} />
+          ) : (
+            <ItemTile item={item} size={160} showName={false} />
+          )}
+        </View>
         <PhotoStatus action={action} />
         {action.state !== 'intro' && action.state !== 'working' && (
-          <Row wrap>
+          <Row wrap style={{ justifyContent: 'center' }}>
             <Chip icon="📷" label={t('photo.take')} onPress={() => action.withCameraIntro(() => void addPhoto('camera'))} />
             <Chip icon="🖼️" label={t('photo.choose')} onPress={() => void addPhoto('library')} />
             {item.photoUri && !item.cutoutUri && <Chip icon="✂️" label={t('cutout.make')} onPress={() => void recut()} />}
-            {item.photoUri && <Chip icon="✖️" label={t('photo.remove')} onPress={() => set({ photoUri: undefined, cutoutUri: undefined, cutoutAspect: undefined })} />}
           </Row>
         )}
-        {cutout === 'ok' && item.cutoutUri && (
-          <Row style={{ gap: space.md }}>
-            <Image source={{ uri: item.cutoutUri }} style={{ width: 64, height: 64 }} resizeMode="contain" accessibilityLabel={t('cutout.previewA11y')} />
-            <T variant="small" style={{ flex: 1 }}>
-              {t('cutout.ok')}
-            </T>
-          </Row>
-        )}
-        {cutout === 'failed' && (
+        {(cutout === 'ok' || (cutout === null && item.cutoutUri)) && <T variant="small">{t('cutout.ok')}</T>}
+        {(cutout === 'failed' || (cutout === null && item.photoUri && !item.cutoutUri)) && (
           <T variant="small" muted>
             {t('cutout.failed')}
           </T>
         )}
-        {item.photoUri && guessed && (
-          <T variant="small" muted>
-            {t('photo.colorsGuessed')}
-          </T>
-        )}
       </Card>
 
       <Card>
-        <T variant="label">{t('item.category')}</T>
+        <T variant="heading">{t('item.step2')}</T>
         <Row wrap>
-          {CATEGORIES.map((cat) => (
-            <Chip key={cat} icon={itemIcon({ category: cat })} label={t(`cat.${cat}` as TKey)} selected={item.category === cat} onPress={() => pickCategory(cat)} />
-          ))}
-        </Row>
-        <T variant="label">{t('item.type')}</T>
-        <Row wrap>
-          {SUBCATEGORIES[item.category].map((sub) => (
-            <Chip
-              key={sub}
-              label={t(`sub.${sub}` as TKey)}
-              selected={item.subcategory === sub}
-              onPress={() => set({ subcategory: sub, warmth: DEFAULT_WARMTH[sub] ?? item.warmth })}
-            />
+          {TYPES.map(({ sub, category }) => (
+            <Chip key={sub} icon={itemIcon({ category, subcategory: sub })} label={t(`sub.${sub}` as TKey)} selected={item.subcategory === sub} onPress={() => set({ subcategory: sub, category })} />
           ))}
         </Row>
       </Card>
 
-      <Card>
-        <T variant="label">{t('item.colors')}</T>
-        <T variant="small" muted>
-          {t('item.colorsHint')}
-        </T>
-        <ColorPicker value={item.colors} onChange={(colors: ColorName[]) => set({ colors: colors.slice(0, 3) })} labelKey="item.colorA11y" />
-      </Card>
-
-      <Card>
-        <T variant="label">{t('item.warmth')}</T>
-        <Row wrap>
-          {([1, 2, 3, 4, 5] as Warmth[]).map((w) => (
-            <Chip key={w} label={t(`warmth.${w}` as TKey)} selected={item.warmth === w} onPress={() => set({ warmth: w })} />
-          ))}
-        </Row>
-        {(item.category === 'outerwear' || item.category === 'shoes') && (
-          <>
-            {toggle(t('item.waterproof'), item.waterproof, (v) => set({ waterproof: v }))}
-            {item.category === 'outerwear' && toggle(t('item.windproof'), item.windproof, (v) => set({ windproof: v }))}
-          </>
-        )}
-      </Card>
-
-      <Card>
-        <T variant="label">{t('item.style')}</T>
-        <Row wrap>
-          {STYLE_TAGS.map((tag: StyleTag) => (
-            <Chip
-              key={tag}
-              label={t(`tag.${tag}` as TKey)}
-              selected={item.styleTags.includes(tag)}
-              onPress={() => set({ styleTags: item.styleTags.includes(tag) ? item.styleTags.filter((x) => x !== tag) : [...item.styleTags, tag] })}
-            />
-          ))}
-        </Row>
-        {toggle(t('item.favorite'), item.favorite, (v) => set({ favorite: v }))}
-        {toggle(t('item.inWash'), item.inLaundry, (v) => set({ inLaundry: v }))}
-      </Card>
-
-      <Button label={t('common.save')} onPress={save} disabled={item.colors.length === 0} />
+      <Button label={t('common.save')} onPress={save} disabled={action.state === 'working'} />
       {saveFailed && <T muted>{t('item.saveFailed')}</T>}
-      {item.colors.length === 0 && (
-        <T variant="small" muted center>
-          {t('item.needColor')}
-        </T>
-      )}
       {existing && (
         <Button
           kind="danger"

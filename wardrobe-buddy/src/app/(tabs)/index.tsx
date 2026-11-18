@@ -1,188 +1,146 @@
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { useState } from 'react';
+import { ScrollView, useWindowDimensions, View } from 'react-native';
 
-import { MOODS, type Category, type ClothingItem, type Mood, type Outfit } from '@/domain/types';
-import { suggest, swapIn } from '@/engine';
+import { toggleWorn } from '@/domain/fit/place';
+import type { Category, ClothingItem, GarmentFit } from '@/domain/types';
 import { useApp, useTodayWeather } from '@/features/app/AppState';
 import { newId } from '@/features/app/dates';
+import { TryOnPhoto } from '@/features/fit/TryOnPhoto';
 import { Avatar } from '@/features/me/Avatar';
-import { OutfitStack } from '@/features/me/OutfitStack';
-import { SelfieImage } from '@/features/me/SelfieCard';
-import { EXTRA_ICON, TIP_KEY, useWhyText } from '@/features/today/text';
-import { WeatherStrip } from '@/features/today/WeatherStrip';
-import { ItemTile, useItemName } from '@/features/wardrobe/visuals';
+import { WeatherLine } from '@/features/today/WeatherStrip';
+import { ItemTile, itemIcon, useItemName } from '@/features/wardrobe/visuals';
 import type { TKey } from '@/i18n';
 import { Button, Card, Chip, Row, Screen, Section, T } from '@/ui/components';
 import { DropIn } from '@/ui/motion';
 import { space } from '@/ui/theme';
 
-const MOOD_ICON: Record<Mood, string> = { happy: '😊', cozy: '🧸', sporty: '⚡', fancy: '✨', chill: '😌' };
-/** Swap tabs from her sketch (T-shirts / Pants / Shorts), generalised to categories. */
-const SWAP_TABS: Category[] = ['top', 'bottom', 'dress', 'outerwear', 'shoes'];
+/** The rows she picks from, top to toe (her sketch: T-shirts / Pants / Shorts tabs, generalised). */
+const ROWS: Category[] = ['top', 'bottom', 'dress', 'outerwear', 'shoes'];
+const STEP = 0.06;
+const NO_FIT: GarmentFit = { dx: 0, dy: 0, scale: 1 };
 
+/**
+ * "My day" (owner's simple flow, D-061): she picks clothes from her wardrobe and sees them worn by
+ * her avatar or on her own photo. No automatic suggestions, moods or ratings.
+ */
 export default function Today() {
-  const app = useApp();
-  const { t, profile, items, outfits, ratings, learning, mood, setMood, saveOutfit, today } = app;
+  const { t, profile, items, outfits, saveOutfit, upsertItem, updateProfile, today } = useApp();
   const weather = useTodayWeather();
-  const why = useWhyText();
   const nameOf = useItemName();
-  const [alt, setAlt] = useState(0);
-  const [edits, setEdits] = useState<string[] | null>(null);
-  const [swapTab, setSwapTab] = useState<Category>('top');
-
-  const history = useMemo(() => outfits.map((o) => ({ date: o.date, itemIds: o.itemIds })), [outfits]);
-  const result = useMemo(
-    () =>
-      profile
-        ? suggest({ date: today, items, profile, weather, mood, history, learning })
-        : null,
-    [profile, today, items, weather, mood, history, learning],
-  );
+  const { width: screenW } = useWindowDimensions();
   const saved = outfits.find((o) => o.date === today);
-  const rated = saved ? ratings.some((r) => r.outfitId === saved.id) : false;
+  const [worn, setWorn] = useState<string[] | null>(null);
+  const [adjusting, setAdjusting] = useState<string | null>(null);
+  if (!profile) return null;
 
-  if (!profile || !result) return null;
+  const wornIds = (worn ?? saved?.itemIds ?? []).filter((id) => items.some((i) => i.id === id));
+  const current = wornIds.map((id) => items.find((i) => i.id === id)).filter((i): i is ClothingItem => !!i);
+  const photo = profile.useSelfie && profile.selfieUri ? profile.selfieUri : undefined;
+  const previewW = Math.min(300, screenW - space.lg * 4);
+  const label = current.length ? t('avatar.wearing', { items: current.map(nameOf).join(', ') }) : t('today.wearingNothing');
+  const adjustItem = current.find((i) => i.id === adjusting && i.cutoutUri);
 
-  // Once today's outfit is saved, "another idea" should not repeat it.
-  const options = saved ? result.outfits.filter((o) => o.itemIds.join() !== saved.itemIds.join()) : result.outfits;
-  const suggestion = options[Math.min(alt, Math.max(0, options.length - 1))];
-  const currentIds = edits ?? suggestion?.itemIds ?? [];
-  const current = currentIds.map((id) => items.find((i) => i.id === id)).filter((i): i is ClothingItem => !!i);
-  const showAvatar = profile.uiStyle === 'playful';
-
-  const swap = (item: ClothingItem) => setEdits(swapIn(currentIds, item, items));
-
-  const wear = async () => {
-    const o: Outfit = {
-      id: newId(),
-      date: today,
-      itemIds: currentIds,
-      extras: result.extras,
-      mood,
-      weatherSnapshot: weather ?? undefined,
-      source: edits ? 'edited' : 'suggested',
-    };
-    await saveOutfit(o);
-    setEdits(null);
+  const choose = (next: string[]) => {
+    setWorn(next);
+    // Her choice for today is kept, so it's still there when she opens the app again.
+    void saveOutfit({ id: saved?.id ?? newId(), date: today, itemIds: next, extras: [], source: 'manual' });
   };
+  const nudge = (item: ClothingItem, p: Partial<GarmentFit>) => {
+    const f = item.fit ?? NO_FIT;
+    void upsertItem({ ...item, fit: { dx: f.dx + (p.dx ?? 0), dy: f.dy + (p.dy ?? 0), scale: Math.min(2.5, Math.max(0.4, f.scale * (p.scale ?? 1))) } });
+  };
+
+  if (items.length === 0) {
+    return (
+      <Screen>
+        <T variant="title">{t('today.hello', { name: profile.nickname })}</T>
+        <WeatherLine day={weather} />
+        <Card alt>
+          <T variant="heading">{t('today.emptyTitle')}</T>
+          <T>{t('today.emptyBody')}</T>
+          <Button icon="➕" label={t('today.addClothes')} onPress={() => router.push('/item/new')} />
+        </Card>
+      </Screen>
+    );
+  }
 
   return (
     <Screen>
       <T variant="title">{t('today.hello', { name: profile.nickname })}</T>
-      <WeatherStrip day={weather} />
+      <WeatherLine day={weather} />
 
-      <Section title={t('today.moodTitle')}>
-        <Row wrap>
-          {MOODS.map((m) => (
-            <Chip
-              key={m}
-              icon={showAvatar ? MOOD_ICON[m] : undefined}
-              label={t(`mood.${m}` as TKey)}
-              selected={mood === m}
-              onPress={() => {
-                setMood(mood === m ? undefined : m);
-                setAlt(0);
-                setEdits(null);
-              }}
-            />
-          ))}
-        </Row>
-      </Section>
+      <Row wrap style={{ justifyContent: 'center' }}>
+        <Chip icon="🧍" label={t('today.showAvatar')} selected={!photo} onPress={() => updateProfile({ useSelfie: false })} />
+        <Chip icon="📸" label={t('today.showPhoto')} selected={!!photo} onPress={() => (profile.selfieUri ? updateProfile({ useSelfie: true }) : router.push('/me'))} />
+      </Row>
 
-      {saved && (
-        <Card>
-          <T variant="heading">{t('today.savedTitle')}</T>
-          <Row wrap style={{ alignItems: 'flex-start' }}>
-            {saved.itemIds.map((id) => {
-              const it = items.find((i) => i.id === id);
-              return it ? <ItemTile key={id} item={it} size={84} /> : null;
-            })}
-          </Row>
-          {rated ? <T muted>{t('today.thanksRated')}</T> : <Button icon="⭐" label={t('today.rate')} onPress={() => router.push(`/rate/${saved.id}`)} />}
-        </Card>
-      )}
-
-      {result.tips.map((tip) => (
-        <Card key={tip} alt>
-          <T>{t(TIP_KEY[tip])}</T>
-          {(tip === 'emptyWardrobe' || tip.startsWith('add')) && <Button kind="secondary" label={t('today.addClothes')} onPress={() => router.push('/item/new')} />}
-        </Card>
-      ))}
-
-      {suggestion && (
-        <Card>
-          <T variant="heading">{saved ? t('today.otherIdea') : t('today.suggestionTitle')}</T>
-          <DropIn trigger={currentIds.join(',')}>
-            <View style={{ flexDirection: 'row', gap: space.lg, alignItems: 'center' }}>
-              {profile.useSelfie && profile.selfieUri ? (
-                <View style={{ gap: space.sm, alignItems: 'center' }}>
-                  <SelfieImage uri={profile.selfieUri} size={120} label={t('selfie.a11y')} />
-                  <OutfitStack items={current} width={110} label={t('avatar.wearing', { items: current.map(nameOf).join(', ') })} />
-                </View>
-              ) : showAvatar ? (
-                <Avatar look={profile.avatar} outfit={current} size={190} label={t('avatar.wearing', { items: current.map(nameOf).join(', ') })} />
-              ) : (
-                <OutfitStack items={current} width={140} label={t('avatar.wearing', { items: current.map(nameOf).join(', ') })} />
-              )}
-              <View style={{ flex: 1, gap: space.sm }}>
-                <Row wrap style={{ alignItems: 'flex-start' }}>
-                  {current.map((it) => (
-                    <ItemTile key={it.id} item={it} size={showAvatar ? 72 : 96} />
-                  ))}
-                </Row>
-              </View>
-            </View>
-          </DropIn>
-          {!edits && (
-            <View accessibilityRole="summary" style={{ gap: 2 }}>
-              <T variant="label">{t('today.why')}</T>
-              <T>{why(suggestion.reasons, items)}</T>
-            </View>
+      <Card style={{ alignItems: 'center' }}>
+        <DropIn trigger={wornIds.join(',')}>
+          {photo ? (
+            <TryOnPhoto uri={photo} aspect={profile.photoAspect} pose={profile.photoPose} outfit={current} width={previewW} label={label} />
+          ) : (
+            <Avatar look={profile.avatar} outfit={current} size={Math.round(previewW * 1.3)} label={label} />
           )}
-          {result.extras.length > 0 && (
-            <>
-              <T variant="label">{t('today.dontForget')}</T>
-              <Row wrap>
-                {result.extras.map((e) => (
-                  <Chip key={e} icon={EXTRA_ICON[e]} label={t(`extra.${e}` as TKey)} />
+        </DropIn>
+        {photo && !profile.photoPose && (
+          <T variant="small" muted center>
+            {t('today.photoNoPoints')}
+          </T>
+        )}
+        {current.some((i) => !i.cutoutUri) && (
+          <T variant="small" muted center>
+            {t('today.someNotCut')}
+          </T>
+        )}
+        {current.some((i) => i.cutoutUri) && (
+          <>
+            <T variant="label">{t('today.adjustTitle')}</T>
+            <Row wrap style={{ justifyContent: 'center' }}>
+              {current
+                .filter((i) => i.cutoutUri)
+                .map((i) => (
+                  <Chip
+                    key={i.id}
+                    icon={itemIcon(i)}
+                    label={i.subcategory ? t(`sub.${i.subcategory}` as TKey) : t(`cat.${i.category}` as TKey)}
+                    selected={adjusting === i.id}
+                    onPress={() => setAdjusting(adjusting === i.id ? null : i.id)}
+                  />
                 ))}
-              </Row>
-            </>
-          )}
-          <Button icon="👍" label={t('today.wear')} onPress={wear} />
-          <Row wrap style={{ justifyContent: 'center' }}>
-            {options.length > 1 && (
-              <Chip
-                icon="🔀"
-                label={t('today.another')}
-                onPress={() => {
-                  setAlt((alt + 1) % options.length);
-                  setEdits(null);
-                }}
-              />
-            )}
-            {edits && <Chip icon="↩️" label={t('today.undo')} onPress={() => setEdits(null)} />}
-          </Row>
-        </Card>
-      )}
+            </Row>
+          </>
+        )}
+        {adjustItem && (
+          <View style={{ gap: space.sm, alignItems: 'center' }}>
+            <Row wrap style={{ justifyContent: 'center' }}>
+              <Chip icon="⬆️" label={t('fit.up')} onPress={() => nudge(adjustItem, { dy: -STEP })} />
+              <Chip icon="⬇️" label={t('fit.down')} onPress={() => nudge(adjustItem, { dy: STEP })} />
+              <Chip icon="⬅️" label={t('fit.left')} onPress={() => nudge(adjustItem, { dx: -STEP })} />
+              <Chip icon="➡️" label={t('fit.right')} onPress={() => nudge(adjustItem, { dx: STEP })} />
+            </Row>
+            <Row wrap style={{ justifyContent: 'center' }}>
+              <Chip icon="➖" label={t('fit.smaller')} onPress={() => nudge(adjustItem, { scale: 1 / 1.06 })} />
+              <Chip icon="➕" label={t('fit.bigger')} onPress={() => nudge(adjustItem, { scale: 1.06 })} />
+              <Chip icon="↺" label={t('fit.reset')} onPress={() => void upsertItem({ ...adjustItem, fit: undefined })} />
+            </Row>
+          </View>
+        )}
+        {current.length > 0 && <Chip icon="🧺" label={t('today.takeOff')} onPress={() => choose([])} />}
+      </Card>
 
-      {suggestion && (
-        <Section title={t('today.swapTitle')}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: space.sm, alignItems: 'center' }}>
-            {SWAP_TABS.filter((c) => items.some((i) => i.category === c)).map((c) => (
-              <Chip key={c} label={t(`catPlural.${c}` as TKey)} selected={swapTab === c} onPress={() => setSwapTab(c)} />
-            ))}
-          </ScrollView>
-          <Row wrap gap={space.md} style={{ alignItems: 'flex-start' }}>
+      {ROWS.filter((cat) => items.some((i) => i.category === cat)).map((cat) => (
+        <Section key={cat} title={t(`catPlural.${cat}` as TKey)}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: space.md, alignItems: 'flex-start' }}>
             {items
-              .filter((i) => i.category === swapTab && !i.inLaundry)
+              .filter((i) => i.category === cat)
               .map((i) => (
-                <ItemTile key={i.id} item={i} size={88} selected={currentIds.includes(i.id)} onPress={() => swap(i)} a11yHint={t('today.swapHint')} />
+                <ItemTile key={i.id} item={i} size={84} selected={wornIds.includes(i.id)} onPress={() => choose(toggleWorn(wornIds, i, items))} a11yHint={t('today.pickHint')} />
               ))}
-          </Row>
+          </ScrollView>
         </Section>
-      )}
+      ))}
+      <Button kind="secondary" icon="➕" label={t('today.addClothes')} onPress={() => router.push('/item/new')} />
     </Screen>
   );
 }

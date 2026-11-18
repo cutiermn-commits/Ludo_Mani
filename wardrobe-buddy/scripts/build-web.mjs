@@ -73,7 +73,9 @@ const files = [];
   }
 })(out);
 // Not precached: the service worker itself, and the 404 copy (written below).
-const precache = files.filter((p) => !/[\\/](sw\.js|404\.html)$/.test(p));
+// Also not precached: the 6.8 MB offline pose page (D-064). It is cached the first time she
+// checks a photo, so the first visit stays light on mobile data.
+const precache = files.filter((p) => !/[\\/](sw\.js|404\.html)$/.test(p) && !/[\\/]pose\.[0-9a-f]+\.html$/.test(p));
 // Version from file CONTENTS, so a change to un-hashed files (index.html, manifest, icons) also
 // produces a new service worker and refreshes the cache.
 const hash = createHash('sha256');

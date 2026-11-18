@@ -1,59 +1,41 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 
-import type { StyleTag, ThemeMode } from '@/domain/types';
-import { summarizeLearning } from '@/engine';
+import type { ThemeMode } from '@/domain/types';
 import { useApp } from '@/features/app/AppState';
+import { BodyPhotoCard } from '@/features/fit/BodyPhotoCard';
 import { Avatar } from '@/features/me/Avatar';
-import { DiaryList } from '@/features/me/DiaryPhotoCard';
-import { SelfieCard } from '@/features/me/SelfieCard';
-import { AvatarMaker, ColorPicker, LanguagePicker, StylePrefPicker, ThemePicker } from '@/features/me/pickers';
-import { useItemName } from '@/features/wardrobe/visuals';
+import { AvatarMaker, LanguagePicker, ThemePicker } from '@/features/me/pickers';
 import type { TKey } from '@/i18n';
 import { Button, Card, Chip, Row, Screen, Section, T } from '@/ui/components';
 import { space } from '@/ui/theme';
 
-/** Her own space: look, theme, language, likes, and what the app has learned. Nothing here needs the parental gate. */
+/** Step 1 of the simple flow (D-061): "Configure myself" — avatar, own photo, language and colours. */
 export default function Me() {
-  const { t, profile, updateProfile, setLocale, locale, learning, items } = useApp();
-  const nameOf = useItemName();
+  const { t, profile, updateProfile, setLocale, locale } = useApp();
   const [editAvatar, setEditAvatar] = useState(false);
   if (!profile) return null;
 
-  const learned = summarizeLearning(learning);
-  const likedNames = learned.likedItemIds.map((id) => items.find((i) => i.id === id)).filter((i) => !!i).map((i) => nameOf(i!));
-  const learnedLines: string[] = [];
-  if (likedNames.length) learnedLines.push(t('me.learnedItems', { items: likedNames.join(t('me.and')) }));
-  if (learned.likedTags.length) learnedLines.push(t('me.learnedTags', { tags: learned.likedTags.map((x: StyleTag) => t(`tag.${x}` as TKey).toLocaleLowerCase(locale)).join(t('me.and')) }));
-  if (learned.runsCold) learnedLines.push(t('me.learnedCold'));
-  if (learned.runsWarm) learnedLines.push(t('me.learnedWarm'));
-
   return (
     <Screen>
-      <Card style={{ alignItems: 'center' }}>
-        <Row wrap style={{ justifyContent: 'center' }}>
-          <Chip icon="🧍" label={t('selfie.useAvatar')} selected={!profile.useSelfie} onPress={() => updateProfile({ useSelfie: false })} />
-          <Chip icon="📸" label={t('selfie.usePhoto')} selected={!!profile.useSelfie} onPress={() => updateProfile({ useSelfie: true })} />
-        </Row>
-        {profile.useSelfie ? (
-          <SelfieCard value={profile.selfieUri} onChange={(selfieUri) => updateProfile({ selfieUri, useSelfie: !!selfieUri })} />
-        ) : editAvatar ? (
-          <AvatarMaker value={profile.avatar} onChange={(avatar) => updateProfile({ avatar })} />
-        ) : (
-          <Avatar look={profile.avatar} size={170} label={t('avatar.preview')} />
-        )}
-        <T variant="title">{profile.nickname}</T>
-        {!profile.useSelfie && <Button kind="secondary" label={editAvatar ? t('common.done') : t('me.editAvatar')} onPress={() => setEditAvatar(!editAvatar)} />}
-      </Card>
+      <T variant="title">{profile.nickname}</T>
 
-      <Section title={t('diary.title')}>
-        <DiaryList />
+      <Section title={t('me.showAs')}>
+        <Row wrap>
+          <Chip icon="🧍" label={t('today.showAvatar')} selected={!profile.useSelfie} onPress={() => updateProfile({ useSelfie: false })} />
+          <Chip icon="📸" label={t('today.showPhoto')} selected={!!profile.useSelfie} onPress={() => updateProfile({ useSelfie: !!profile.selfieUri })} />
+        </Row>
       </Section>
 
-      <Section title={t('me.learnedTitle')}>
-        <Card alt>
-          {learned.hasLearned ? learnedLines.map((l) => <T key={l}>{l}</T>) : <T>{t('me.learnedNothing')}</T>}
+      <Section title={t('me.myAvatar')}>
+        <Card style={{ alignItems: 'center' }}>
+          {editAvatar ? <AvatarMaker value={profile.avatar} onChange={(avatar) => updateProfile({ avatar })} /> : <Avatar look={profile.avatar} size={240} label={t('avatar.preview')} />}
+          <Button kind={editAvatar ? 'primary' : 'secondary'} label={editAvatar ? t('common.done') : t('me.editAvatar')} onPress={() => setEditAvatar(!editAvatar)} />
         </Card>
+      </Section>
+
+      <Section title={t('me.myPhoto')}>
+        <BodyPhotoCard />
       </Section>
 
       <Section title={t('me.language')}>
@@ -67,32 +49,6 @@ export default function Me() {
             <Chip key={m} label={t(`themeMode.${m}` as TKey)} selected={profile.themeMode === m} onPress={() => updateProfile({ themeMode: m })} />
           ))}
         </Row>
-      </Section>
-
-      <Section title={t('me.appStyle')}>
-        <Row wrap>
-          <Chip icon="🎈" label={t('uiStyle.playful')} selected={profile.uiStyle === 'playful'} onPress={() => updateProfile({ uiStyle: 'playful' })} />
-          <Chip icon="▫️" label={t('uiStyle.clean')} selected={profile.uiStyle === 'clean'} onPress={() => updateProfile({ uiStyle: 'clean' })} />
-        </Row>
-      </Section>
-
-      <Section title={t('me.myStyle')}>
-        <StylePrefPicker value={profile.stylePref} onChange={(stylePref) => updateProfile({ stylePref })} />
-      </Section>
-
-      <Section title={t('me.temperature')}>
-        <Row wrap>
-          <Chip icon="🥶" label={t('me.runCold')} selected={profile.tempOffsetC < 0} onPress={() => updateProfile({ tempOffsetC: -2 })} />
-          <Chip icon="🙂" label={t('me.runNormal')} selected={profile.tempOffsetC === 0} onPress={() => updateProfile({ tempOffsetC: 0 })} />
-          <Chip icon="🥵" label={t('me.runWarm')} selected={profile.tempOffsetC > 0} onPress={() => updateProfile({ tempOffsetC: 2 })} />
-        </Row>
-      </Section>
-
-      <Section title={t('me.likedColors')}>
-        <ColorPicker value={profile.likedColors} onChange={(likedColors) => updateProfile({ likedColors, dislikedColors: profile.dislikedColors.filter((x) => !likedColors.includes(x)) })} labelKey="me.likeColorA11y" />
-      </Section>
-      <Section title={t('me.dislikedColors')}>
-        <ColorPicker value={profile.dislikedColors} onChange={(dislikedColors) => updateProfile({ dislikedColors, likedColors: profile.likedColors.filter((x) => !dislikedColors.includes(x)) })} labelKey="me.dislikeColorA11y" />
       </Section>
       <View style={{ height: space.lg }} />
     </Screen>

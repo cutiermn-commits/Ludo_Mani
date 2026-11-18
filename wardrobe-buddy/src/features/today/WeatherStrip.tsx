@@ -72,3 +72,26 @@ export function WeatherStrip({ day }: { day: WeatherDay | null }) {
     </Card>
   );
 }
+
+/** One small line for "My day" (D-061): place, temperature range and rain. Nothing without a forecast. */
+export function WeatherLine({ day }: { day: WeatherDay | null }) {
+  const { t, locale, profile } = useApp();
+  if (!day || day.manual) return null;
+  const text = [
+    profile?.city?.name,
+    t('weather.range', { min: formatTemp(day.tempMinC, locale), max: formatTemp(day.tempMaxC, locale) }),
+    t('weather.rainChance', { pct: formatNumber(day.rainChanceMaxPct, locale) }),
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  return (
+    <Row style={{ gap: 8 }}>
+      <Text style={{ fontSize: 22 }} importantForAccessibility="no" accessibilityElementsHidden>
+        {weatherGlyph(day)}
+      </Text>
+      <T variant="small" style={{ flexShrink: 1 }}>
+        {text}
+      </T>
+    </Row>
+  );
+}

@@ -120,3 +120,55 @@ Format: ID · date · decision · why · alternatives · status. Claude Code add
     - squared distances, with no allocations in the fill loop
   - **Size and policy:** web cut-outs are 160 px, and the parent policy mentions cut-outs.
   - **NOT VERIFIED:** that the image manipulator keeps transparency on Android, and cut-out speed on a real phone.
+- **D-061 · Decided (owner, 2026-11-18): simple flow, no automatic suggestions.** The owner reported that the co-designer doesn't want suggestions. She wants three simple steps:
+  1. **Me:** configure herself (avatar and her own photo).
+  2. **Wardrobe:** take or upload a photo of each piece and say what it is (T-shirt, jeans, hoodie, jacket…). No colours or anything else to fill in.
+  3. **My day:** she picks clothes from her wardrobe and sees them worn by her avatar or on her own photo.
+
+  **Removed from the UI:** moods, suggestions and "why", ratings, the week planner, the outfit diary, colour/warmth/style/occasion entry, liked colours and the "I run cold/warm" setting.
+
+  **Kept:**
+  - A small weather line on My day (owner choice), behind the same parent consent (D-035).
+  - Her pick for today is saved as today's outfit, so it is still there when she comes back.
+
+  **Not deleted yet:** the engine (`src/engine`, tested) and the rating/learning code in AppState. They are no longer reachable from the UI and can be removed or reused later.
+
+  Colours are still guessed from each photo, without asking her. They are only used to draw clothes whose photo couldn't be cut out.
+- **D-062 · Decided (owner, 2026-11-18): rich avatar with drawn height and shape choices, no numbers.**
+  - **Request and decision:** the owner asked for height and weight in the profile. Claude advised against it: the non-negotiable "no body/weight/size talk" applies, a typed weight can't make a flat overlay fit any better, and it adds child-safety risk. The owner chose the "body shape picker, no numbers" option.
+  - **What she chooses:** height (shorter / medium / taller) and shape (1 / 2 / 3) as pictures of her avatar. Nothing in kg or cm is stored or shown, and the copy uses "Height" and "Shape", never body or size words (i18n test).
+  - **The new avatar** (`react-native-svg`) has:
+    - 8 skin tones, 10 hair colours and 8 hairstyles
+    - 6 eye colours
+    - glasses, freckles and earrings
+    - a bow, headband or clips
+    - a plain base outfit (tank top, shorts, sneakers) that her clothes go over
+  - **Dependency check:** `react-native-svg` 15.16.0 is bundled with SDK 58. Its only network code is `SvgUri`/`SvgCssUri`, which a test bans.
+- **D-063 · Decided (owner, 2026-11-18): her own full-body photo, NOT blurred during testing.** This replaces the selfie blur (D-033, D-045) for the try-on photo, during the owner's test period only.
+  - **Unchanged:** metadata is stripped, the photo stays in the app sandbox, the picker and manipulator copies are deleted, and the photo is in the parent export and in delete-all.
+  - **Size:** 720 px wide on phones, 420 px in the browser.
+  - **BLOCKER before any store release:** decide on blurring or face handling, then update the privacy drafts and the Play data-safety draft. The blur code (`processSelfie`, `blurTop`) is kept for that.
+- **D-064 · Decided (owner, 2026-11-18): "AI on the phone" for automatic fitting.**
+  - **Options weighed:** the owner first asked for an AI service. Claude explained the choice between cloud try-on (her photo uploaded, cost, account, child-photo terms) and on-device pose detection. The owner chose on-device.
+  - **Model:** MoveNet SinglePose Lightning v4 (Google, Apache-2.0). It finds shoulders, hips and ankles. It is used as the TF.js graph conversion from `@vladmandic/human-models` 3.0.4 (MIT), vendored in `vendor/movenet/`:
+    - sha256 json: df8cbde44d00f533ccc4916a7c6ebc17316532fb3fadad114ec667fef22872e9
+    - sha256 bin: bf97bc10d9c8a11200b0190ed64ce039b6252f1aff7cb552aca99b3d191c2f34
+  - **Where it runs:** on TF.js' plain-JavaScript CPU backend, inside ONE offline page, `assets/pose/pose.html` (6.8 MB, built by `npm run build:pose`). The page's CSP is `default-src 'none'`, so it can make no network request (test).
+    - **Phones:** a hidden `react-native-webview`, loaded only while a photo is checked and closed 20 s later. It allows only that file, refuses navigation and has no extra windows.
+    - **Browser:** a sandboxed iframe (scripts only). Messages are accepted only from that frame.
+    - **Why a WebView:** Hermes has no JIT. A JIT-less run of the same model took about 15 s per image, against about 0.9 s with a JIT (measured 2026-11-18 on the build machine).
+  - **Rejected:**
+    - **MediaPipe Tasks Vision:** its web bundle posts usage logs to `odml.pa.googleapis.com/v1/log` (found in its code, 2026-11-18).
+    - **react-native-fast-tflite:** a native Nitro module, and no `.tflite` file was downloadable here (403).
+    - **Cloud try-on:** see above.
+  - **Fallback:** if the model finds no person, she taps 6 points (shoulders, hips, feet). Feet outside the photo are estimated, and she is told so.
+  - **Results so far:** the browser test found a drawn person in about 1.7 s. Real phone speed and accuracy on real photos are NOT VERIFIED.
+  - **New runtime dependencies:** `react-native-webview` 14.0.1 and `expo-asset` (SDK 58). TF.js and esbuild are build-only.
+  - **Web:** the 6.8 MB page is not precached by the service worker; it is cached the first time it is used.
+- **D-065 · One placement rule set for the avatar and her photo.**
+  - **How garments are placed** (`src/domain/fit/place.ts`):
+    - Each cut-out is sized from the shoulder span (tops, jackets, dresses) or the hip span (bottoms), keeps its own shape, hangs from just above the shoulders or the waist, and shoes stand at the feet.
+    - A dress replaces the top and bottom. One garment per slot (`toggleWorn`).
+  - **The avatar:** its geometry (`avatarBody.ts`) produces a pose too, so the avatar is dressed by exactly the same rules as her photo.
+  - **Fine-tuning:** she can move a piece or make it bigger or smaller (`ClothingItem.fit`, in shoulder-widths). The adjustment is kept per garment and reset when the photo changes.
+  - **Limits:** this is a flat overlay, not a simulation of fabric, and the factors are ASSUMPTION starting values tuned on test pictures.

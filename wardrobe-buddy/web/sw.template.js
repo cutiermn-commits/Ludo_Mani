@@ -38,6 +38,23 @@ self.addEventListener('fetch', (event) => {
   const req = event.request;
   const url = new URL(req.url);
   if (req.method !== 'GET' || url.origin !== self.location.origin || !url.pathname.startsWith(BASE)) return;
+  // The offline pose page (D-064) loads in a hidden frame: hashed name, so cache it on first use.
+  if (req.destination === 'iframe' && /\/pose\.[0-9a-f]+\.html$/.test(url.pathname)) {
+    event.respondWith(
+      caches.match(req).then(
+        (hit) =>
+          hit ||
+          fetch(req).then((res) => {
+            if (res.ok) {
+              const copy = res.clone();
+              caches.open(CACHE).then((c) => c.put(req, copy));
+            }
+            return res;
+          }),
+      ),
+    );
+    return;
+  }
   if (req.mode === 'navigate') {
     // App pages: network first (to get updates), the cached app shell when offline.
     event.respondWith(withTimeout(fetch(req), 3000).catch(() => caches.match(BASE + '/index.html')));

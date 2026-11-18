@@ -84,9 +84,9 @@ describe('AppState', () => {
     const { result } = await setup({ searchCity: jest.fn(), getForecast: jest.fn(async () => []) });
     await waitFor(() => expect(result.current.ready).toBe(true));
     await act(() => result.current.setLocale('da'));
-    expect(result.current.t('tab.today')).toBe('I dag');
+    expect(result.current.t('tab.today')).toBe('Min dag');
     await act(() => result.current.setLocale('en'));
-    expect(result.current.t('tab.today')).toBe('Today');
+    expect(result.current.t('tab.today')).toBe('My day');
   });
 });
 

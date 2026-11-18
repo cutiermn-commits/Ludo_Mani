@@ -71,8 +71,17 @@ export interface ClothingItem {
   occasions: Occasion[];
   favorite: boolean;
   inLaundry: boolean;
+  /** Her own fine-tuning of where the garment sits when worn (D-065); same on the avatar and her photo. */
+  fit?: GarmentFit;
   /** ISO timestamp, supplied by the caller (never Date.now() inside the engine). */
   createdAt: string;
+}
+
+/** dx/dy move the garment in shoulder-widths; scale resizes it (1 = automatic size). */
+export interface GarmentFit {
+  dx: number;
+  dy: number;
+  scale: number;
 }
 
 export type AgeBand = '11-12' | '13-15';
@@ -81,10 +90,42 @@ export type ThemeName = 'pink' | 'blue' | 'green' | 'purple';
 export type ThemeMode = 'system' | 'light' | 'dark';
 export type Locale = 'da' | 'en';
 
+export const HAIR_STYLE_IDS = ['short', 'bob', 'long', 'ponytail', 'buns', 'braids', 'curly', 'puffs'] as const;
+export type HairStyle = (typeof HAIR_STYLE_IDS)[number];
+export const HAIR_ACCESSORIES = ['none', 'bow', 'headband', 'clips'] as const;
+export type HairAccessory = (typeof HAIR_ACCESSORIES)[number];
+/** Avatar height and build are picked from drawings, never as numbers (D-062: no body measurements). */
+export const AVATAR_HEIGHTS = ['shorter', 'medium', 'taller'] as const;
+export type AvatarHeight = (typeof AVATAR_HEIGHTS)[number];
+export type AvatarBuild = 1 | 2 | 3;
+
 export interface AvatarLook {
   skin: number; // index into the avatar skin palette
   hair: number; // index into the avatar hair palette
-  hairStyle: 'short' | 'long' | 'ponytail' | 'buns';
+  hairStyle: HairStyle;
+  eyes?: number; // index into the eye colour palette
+  height?: AvatarHeight;
+  build?: AvatarBuild;
+  glasses?: boolean;
+  freckles?: boolean;
+  earrings?: boolean;
+  accessory?: HairAccessory;
+}
+
+/** A point in a picture, as a share of its width (x) and height (y), 0–1. */
+export interface Pt {
+  x: number;
+  y: number;
+}
+
+/** Where her shoulders, hips and feet are (left/right as seen in the picture). On-device only (D-064). */
+export interface BodyPose {
+  lShoulder: Pt;
+  rShoulder: Pt;
+  lHip: Pt;
+  rHip: Pt;
+  lAnkle: Pt;
+  rAnkle: Pt;
 }
 
 export interface Profile {
@@ -112,10 +153,18 @@ export interface Profile {
   weatherConsent: boolean;
   /** She has seen the friendly explanation shown once before the camera permission prompt. */
   cameraIntroSeen?: boolean;
-  /** Optional selfie, stored with the face area blurred (D-033, D-045). */
+  /**
+   * Optional full-body photo of herself to try clothes on (D-063). During the owner's test period it
+   * is stored WITHOUT blurring; blurring is to be decided before any store release. On-device only.
+   */
   selfieUri?: string;
-  /** Show the selfie instead of the drawn avatar. */
+  /** Show the photo instead of the drawn avatar. */
   useSelfie?: boolean;
+  /** Width ÷ height of the photo. */
+  photoAspect?: number;
+  /** Shoulders, hips and feet in the photo: found on the device (D-064) or tapped by her. */
+  photoPose?: BodyPose;
+  photoPoseSource?: 'auto' | 'manual';
 }
 
 export interface City {

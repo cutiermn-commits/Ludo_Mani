@@ -40,10 +40,10 @@ export default function TabLayout() {
         tabBarLabelStyle: { fontSize: 13, fontWeight: '600' },
         sceneStyle: { backgroundColor: c.background },
       }}>
-      <Tabs.Screen name="index" options={{ title: t('tab.today'), tabBarIcon: ({ focused }) => <TabIcon glyph="☀️" focused={focused} /> }} />
-      <Tabs.Screen name="week" options={{ title: t('tab.week'), tabBarIcon: ({ focused }) => <TabIcon glyph="🗓️" focused={focused} /> }} />
-      <Tabs.Screen name="wardrobe" options={{ title: t('tab.wardrobe'), tabBarIcon: ({ focused }) => <TabIcon glyph="👚" focused={focused} /> }} />
+      {/* Her three simple steps (D-061): 1 me, 2 my wardrobe, 3 my day. */}
       <Tabs.Screen name="me" options={{ title: t('tab.me'), tabBarIcon: ({ focused }) => <TabIcon glyph="🌟" focused={focused} /> }} />
+      <Tabs.Screen name="wardrobe" options={{ title: t('tab.wardrobe'), tabBarIcon: ({ focused }) => <TabIcon glyph="👚" focused={focused} /> }} />
+      <Tabs.Screen name="index" options={{ title: t('tab.today'), tabBarIcon: ({ focused }) => <TabIcon glyph="☀️" focused={focused} /> }} />
     </Tabs>
   );
 }
