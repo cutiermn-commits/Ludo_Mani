@@ -1,0 +1,5 @@
+{
+  "_comment": "Where the web app is published (D-055: its own origin, not shared with other GitHub Pages projects). Change both together if the organisation name changes.",
+  "origin": "https://wardrobe-buddy.github.io",
+  "basePath": ""
+}

@@ -1,0 +1,74 @@
+{
+  "expo": {
+    "name": "Wardrobe Buddy",
+    "slug": "wardrobe-buddy",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "wardrobebuddy",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "config": {
+        "usesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#F8F4FF",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "blockedPermissions": [
+        "com.google.android.gms.permission.AD_ID",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.READ_CONTACTS",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ],
+      "predictiveBackGestureEnabled": false,
+      "package": "dk.mani.wardrobebuddy",
+      "allowBackup": false
+    },
+    "web": {
+      "output": "single",
+      "favicon": "./assets/images/favicon.png",
+      "name": "Wardrobe Buddy",
+      "themeColor": "#6A3FC2"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#F8F4FF",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 76
+        }
+      ],
+      "expo-localization",
+      "expo-sqlite",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Wardrobe Buddy uses your photos only to add pictures of your clothes, or a photo of yourself to try clothes on. They stay on this device.",
+          "cameraPermission": "Wardrobe Buddy uses the camera only to take pictures of your clothes, or of you to try clothes on. They stay on this device.",
+          "microphonePermission": false
+        }
+      ],
+      "./plugins/withWebViewPrivacy"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "owner": "cutiermn",
+    "extra": {
+      "eas": {
+        "projectId": "a7c0899c-eab8-4c4e-adaa-4d4bfb7611ab"
+      }
+    }
+  }
+}
