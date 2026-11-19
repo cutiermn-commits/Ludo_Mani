@@ -47,20 +47,6 @@ export default function Today() {
   };
   const nudge = (item: ClothingItem, delta: { dx?: number; dy?: number; scale?: number }) => void updateItem(item.id, (i) => ({ ...i, fit: nudgeFit(i.fit, delta) }));
 
-  if (items.length === 0) {
-    return (
-      <Screen>
-        <T variant="title">{t('today.hello', { name: profile.nickname })}</T>
-        <WeatherLine day={weather} />
-        <Card alt>
-          <T variant="heading">{t('today.emptyTitle')}</T>
-          <T>{t('today.emptyBody')}</T>
-          <Button icon="➕" label={t('today.addClothes')} onPress={() => router.push('/item/new')} />
-        </Card>
-      </Screen>
-    );
-  }
-
   return (
     <Screen>
       <T variant="title">{t('today.hello', { name: profile.nickname })}</T>
@@ -136,7 +122,13 @@ export default function Today() {
           </ScrollView>
         </Section>
       ))}
-      <Button kind="secondary" icon="➕" label={t('today.addClothes')} onPress={() => router.push('/item/new')} />
+      {items.length === 0 && (
+        <T muted center>
+          {t('today.emptyBody')}
+        </T>
+      )}
+      {/* Adding clothes lives only in the Wardrobe tab (owner, 2026-11-19); here she just goes there to pick. */}
+      <Button kind={items.length ? 'secondary' : 'primary'} icon="👚" label={t('today.chooseFromWardrobe')} onPress={() => router.navigate('/wardrobe')} />
     </Screen>
   );
 }
