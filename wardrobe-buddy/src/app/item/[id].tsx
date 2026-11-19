@@ -139,6 +139,9 @@ export default function ItemEditor() {
             <Chip key={sub} icon={itemIcon({ category, subcategory: sub })} label={t(`sub.${sub}` as TKey)} selected={item.subcategory === sub} onPress={() => set({ subcategory: sub, category })} />
           ))}
         </Row>
+        <Row wrap>
+          <Chip icon="🫧" label={t('item.inWash')} selected={item.inLaundry} onPress={() => set({ inLaundry: !item.inLaundry })} />
+        </Row>
       </Card>
 
       <Button label={t('common.save')} onPress={save} disabled={action.state === 'working'} />

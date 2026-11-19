@@ -1,14 +1,17 @@
 import { Link, Redirect, Tabs } from 'expo-router';
-import { Pressable, Text } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { useApp } from '@/features/app/AppState';
 import { useTheme } from '@/ui/useTheme';
 
 function TabIcon({ glyph, focused }: { glyph: string; focused: boolean }) {
+  const c = useTheme();
   return (
-    <Text style={{ fontSize: focused ? 24 : 21, opacity: focused ? 1 : 0.7 }} importantForAccessibility="no" accessibilityElementsHidden>
-      {glyph}
-    </Text>
+    <View style={{ minWidth: 52, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: focused ? c.primarySoft : 'transparent' }}>
+      <Text style={{ fontSize: focused ? 22 : 20, opacity: focused ? 1 : 0.75 }} importantForAccessibility="no" accessibilityElementsHidden>
+        {glyph}
+      </Text>
+    </View>
   );
 }
 
@@ -34,10 +37,10 @@ export default function TabLayout() {
         headerTintColor: c.text,
         headerShadowVisible: false,
         headerRight: gear,
-        tabBarStyle: { backgroundColor: c.surface, borderTopColor: c.border, minHeight: 60 },
+        tabBarStyle: { backgroundColor: c.surface, borderTopWidth: 0, minHeight: 66, paddingTop: 6, borderTopLeftRadius: 22, borderTopRightRadius: 22, boxShadow: `0 -4px 16px ${c.dark ? 'rgba(0,0,0,0.4)' : 'rgba(60, 30, 90, 0.10)'}` },
         tabBarActiveTintColor: c.primary,
         tabBarInactiveTintColor: c.textMuted,
-        tabBarLabelStyle: { fontSize: 13, fontWeight: '600' },
+        tabBarLabelStyle: { fontSize: 13, fontWeight: '800' },
         sceneStyle: { backgroundColor: c.background },
       }}>
       {/* Her three simple steps (D-061): 1 me, 2 my wardrobe, 3 my day. */}

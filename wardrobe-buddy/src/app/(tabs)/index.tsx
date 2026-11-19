@@ -1,17 +1,20 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { ScrollView, useWindowDimensions, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { useWindowDimensions, View } from 'react-native';
 
 import { nudgeFit, toggleWorn } from '@/domain/fit/place';
+import { pickReaction, type Cue } from '@/domain/reactions';
 import type { Category, ClothingItem } from '@/domain/types';
 import { useApp, useTodayWeather } from '@/features/app/AppState';
 import { newId } from '@/features/app/dates';
 import { TryOnPhoto } from '@/features/fit/TryOnPhoto';
 import { Avatar } from '@/features/me/Avatar';
+import { Lively, type LivelyHandle } from '@/features/me/Lively';
+import { Hanger, Mirror, Rail } from '@/features/today/Mirror';
 import { WeatherLine } from '@/features/today/WeatherStrip';
 import { ItemTile, itemIcon, useItemName } from '@/features/wardrobe/visuals';
 import type { TKey } from '@/i18n';
-import { Button, Card, Chip, Row, Screen, Section, T } from '@/ui/components';
+import { Button, Card, Chip, Row, Screen, T } from '@/ui/components';
 import { DropIn } from '@/ui/motion';
 import { space } from '@/ui/theme';
 
@@ -31,6 +34,24 @@ export default function Today() {
   const saved = outfits.find((o) => o.date === today);
   const [worn, setWorn] = useState<string[] | null>(null);
   const [adjusting, setAdjusting] = useState<string | null>(null);
+  /** An item in the wash she tried to pick: ask if it's clean now. */
+  const [washAsk, setWashAsk] = useState<string | null>(null);
+  const lively = useRef<LivelyHandle>(null);
+  const lastLine = useRef<string | undefined>(undefined);
+  const react = (cue: Cue) => {
+    const r = pickReaction(cue, Math.random, lastLine.current);
+    lastLine.current = r.say;
+    lively.current?.react(r, t(r.say as TKey));
+  };
+  // A little hello when she opens her mirror.
+  useEffect(() => {
+    const id = setTimeout(() => {
+      const r = pickReaction('hello');
+      lively.current?.react(r, t(r.say as TKey));
+    }, 700);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per visit
+  }, []);
   if (!profile) return null;
 
   const wornIds = (worn ?? saved?.itemIds ?? []).filter((id) => items.some((i) => i.id === id));
@@ -41,10 +62,22 @@ export default function Today() {
   const adjustItem = current.find((i) => i.id === adjusting && i.cutoutUri);
 
   const choose = (next: string[]) => {
+    setWashAsk(null);
+    if (next.length === 0) react('clear');
+    else if (next.some((id) => !wornIds.includes(id))) react('wear');
     setWorn(next);
     // Her choice for today is kept, so it's still there when she opens the app again.
     void saveOutfit({ id: saved?.id ?? newId(), date: today, itemIds: next, extras: [], source: 'manual' });
   };
+  const pick = (item: ClothingItem) => {
+    if (item.inLaundry && !wornIds.includes(item.id)) {
+      setWashAsk(item.id);
+      react('wash');
+      return;
+    }
+    choose(toggleWorn(wornIds, item, items));
+  };
+  const washItem = items.find((i) => i.id === washAsk);
   const nudge = (item: ClothingItem, delta: { dx?: number; dy?: number; scale?: number }) => void updateItem(item.id, (i) => ({ ...i, fit: nudgeFit(i.fit, delta) }));
 
   return (
@@ -57,14 +90,22 @@ export default function Today() {
         <Chip icon="📸" label={t('today.showPhoto')} selected={!!photo} onPress={() => (profile.selfieUri ? updateProfile({ useSelfie: true }) : router.push('/me'))} />
       </Row>
 
+      <View style={{ alignItems: 'center' }}>
+        <Mirror width={previewW + 20}>
+          <Lively ref={lively} move={!photo} onTap={() => react('tap')} tapLabel={`${label}. ${t('today.tapMe')}`}>
+            {(face, blink) => (
+              <DropIn trigger={wornIds.join(',')}>
+                {photo ? (
+                  <TryOnPhoto uri={photo} aspect={profile.photoAspect} pose={profile.photoPose} outfit={current} width={previewW - 20} label="" />
+                ) : (
+                  <Avatar look={profile.avatar} outfit={current} size={Math.round(previewW * 1.2)} label="" face={face} blink={blink} />
+                )}
+              </DropIn>
+            )}
+          </Lively>
+        </Mirror>
+      </View>
       <Card style={{ alignItems: 'center' }}>
-        <DropIn trigger={wornIds.join(',')}>
-          {photo ? (
-            <TryOnPhoto uri={photo} aspect={profile.photoAspect} pose={profile.photoPose} outfit={current} width={previewW} label={label} />
-          ) : (
-            <Avatar look={profile.avatar} outfit={current} size={Math.round(previewW * 1.3)} label={label} />
-          )}
-        </DropIn>
         {photo && !profile.photoPose && (
           <T variant="small" muted center>
             {t('today.photoNoPoints')}
@@ -109,18 +150,47 @@ export default function Today() {
           </View>
         )}
         {current.length > 0 && <Chip icon="🧺" label={t('today.takeOff')} onPress={() => choose([])} />}
+        {current.length === 0 && !(photo && !profile.photoPose) && (
+          <T variant="small" muted center>
+            {t('today.wearingNothing')}
+          </T>
+        )}
       </Card>
 
+
+      {items.length > 0 && <T variant="heading">👚 {t('today.railTitle')}</T>}
       {ROWS.filter((cat) => items.some((i) => i.category === cat)).map((cat) => (
-        <Section key={cat} title={t(`catPlural.${cat}` as TKey)}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: space.md, alignItems: 'flex-start' }}>
+        <View key={cat} style={{ gap: space.xs }}>
+          <T variant="label" muted>
+            {t(`catPlural.${cat}` as TKey)}
+          </T>
+          <Rail>
             {items
               .filter((i) => i.category === cat)
               .map((i) => (
-                <ItemTile key={i.id} item={i} size={84} selected={wornIds.includes(i.id)} onPress={() => choose(toggleWorn(wornIds, i, items))} a11yHint={t('today.pickHint')} />
+                <View key={i.id} style={{ alignItems: 'center' }}>
+                  <Hanger width={84} />
+                  <ItemTile item={i} size={84} selected={wornIds.includes(i.id)} onPress={() => pick(i)} a11yHint={t('today.pickHint')} />
+                </View>
               ))}
-          </ScrollView>
-        </Section>
+          </Rail>
+          {washItem?.category === cat && (
+            <Card alt style={{ alignItems: 'center' }}>
+              <T center>{t('wardrobe.washSwitch', { name: nameOf(washItem) })} 🫧</T>
+              <Row wrap style={{ justifyContent: 'center' }}>
+                <Chip
+                  icon="✨"
+                  label={t('today.cleanNow')}
+                  onPress={() => {
+                    void updateItem(washItem.id, (i) => ({ ...i, inLaundry: false }));
+                    choose(toggleWorn(wornIds, washItem, items));
+                  }}
+                />
+                <Chip icon="✖️" label={t('common.cancel')} onPress={() => setWashAsk(null)} />
+              </Row>
+            </Card>
+          )}
+        </View>
       ))}
       {items.length === 0 && (
         <T muted center>

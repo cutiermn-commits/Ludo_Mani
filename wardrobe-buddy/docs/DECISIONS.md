@@ -210,3 +210,25 @@ Format: ID · date · decision · why · alternatives · status. Claude Code add
     - the native WebView path end to end (`Asset.loadAsync` gives a `file://` copy, load time, memory)
     - whether a service worker serves a sandboxed iframe offline
     - the current Google Play Families policy text (its host is not allowed in this session)
+
+## D-067 — "In the wash", mirror + wardrobe rail, a lively avatar, fresher look (2026-11-19)
+- **Owner request:** an "in the wash" tag in the wardrobe that also shows on My day; My day should feel like her real morning (pick from the wardrobe, check in the mirror); a more polished, kid/teen look with an avatar that dances, smiles and is funny.
+- **Decision:**
+  - The existing `inLaundry` field is the wash tag. There's a 🫧 switch on each wardrobe tile and in the item editor. On My day the tile shows an "In the wash" ribbon. Tapping it doesn't put it on: the avatar says so and offers "It is clean now – wear it".
+  - My day = an arched **mirror** (the try-on picture) above her **wardrobe rail** (clothes on hangers by type).
+  - **Reactions** (`src/domain/reactions.ts`, `features/me/Lively.tsx`):
+    - Moves: dance, twirl, jump, giggle, pop, shake.
+    - Faces: smile, grin, laugh, wow, wink, oops.
+    - Emoji float up, with a short speech bubble.
+    - Cues: hello, wear, clear, tap, wash.
+    - Idle: blinking and a gentle bob.
+    - Her own photo never moves; only the sparkles and the bubble show.
+    - Reduced motion: no movement, just the face and the bubble.
+    - Lines are about the clothes or fun only. A test bans body and looks words in both languages.
+  - **Look:**
+    - soft background bubbles, shadowed cards and buttons
+    - press feedback on buttons, chips and tiles
+    - a rounded tab bar with a pill on the active tab
+  - Built only with React Native `Animated` and the existing react-native-svg (no new dependency).
+  - `boxShadow` and `transformOrigin` are VERIFIED present in RN 0.88's style processing and passed through by react-native-web.
+- **NOT VERIFIED:** animation smoothness and battery use on a mid-range Android phone (browser test only).

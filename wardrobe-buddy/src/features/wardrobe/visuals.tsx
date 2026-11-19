@@ -77,9 +77,12 @@ export function ItemTile({
   onPress,
   selected,
   onToggleFavorite,
+  onToggleWash,
   a11yHint,
   showName = true,
 }: {
+  /** Shows the 🫧 "in the wash" switch on the tile (Wardrobe, D-067). */
+  onToggleWash?: () => void;
   showName?: boolean;
   item: ClothingItem;
   size?: number;
@@ -109,7 +112,9 @@ export function ItemTile({
             backgroundColor: c.surfaceAlt,
             borderColor: selected ? c.primary : c.border,
             borderWidth: selected ? 3 : 1,
-            opacity: item.inLaundry ? 0.55 : pressed ? 0.85 : 1,
+            opacity: pressed ? 0.85 : 1,
+            transform: [{ scale: pressed ? 0.96 : selected ? 1.03 : 1 }],
+            boxShadow: selected ? `0 6px 14px ${c.dark ? 'rgba(0,0,0,0.5)' : 'rgba(60, 30, 90, 0.22)'}` : `0 2px 6px ${c.dark ? 'rgba(0,0,0,0.35)' : 'rgba(60, 30, 90, 0.08)'}`,
           },
         ]}>
         {item.photoUri ? (
@@ -123,9 +128,16 @@ export function ItemTile({
           </>
         )}
         {item.inLaundry && (
-          <Text style={tile.badge} importantForAccessibility="no" accessibilityElementsHidden>
-            🧺
-          </Text>
+          <View style={[tile.wash, { backgroundColor: c.primarySoft }]} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+            <Text style={[tile.washText, { color: c.onPrimarySoft, fontSize: size < 96 ? 11 : 12 }]} numberOfLines={1}>
+              🫧 {t('wardrobe.inWash')}
+            </Text>
+          </View>
+        )}
+        {selected && (
+          <View style={[tile.check, { backgroundColor: c.primary }]} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+            <Text style={{ color: c.onPrimary, fontWeight: '900', fontSize: 13 }}>✓</Text>
+          </View>
         )}
       </Pressable>
       {onToggleFavorite && (
@@ -139,6 +151,20 @@ export function ItemTile({
           <Text style={{ fontSize: 18, color: item.favorite ? '#D6383A' : c.textMuted }}>{item.favorite ? '♥' : '♡'}</Text>
         </Pressable>
       )}
+      {onToggleWash && (
+        <Pressable
+          accessibilityRole="switch"
+          accessibilityLabel={t('wardrobe.washSwitch', { name })}
+          accessibilityState={{ checked: item.inLaundry }}
+          onPress={onToggleWash}
+          hitSlop={6}
+          style={({ pressed }) => [
+            tile.heart,
+            { backgroundColor: item.inLaundry ? c.primary : c.surface, borderColor: item.inLaundry ? c.primary : c.border, transform: [{ scale: pressed ? 0.9 : 1 }] },
+          ]}>
+          <Text style={{ fontSize: 20 }}>🫧</Text>
+        </Pressable>
+      )}
       {showName && (
         <T variant="small" muted style={{ marginTop: 4 }}>
           {name}
@@ -149,9 +175,11 @@ export function ItemTile({
 }
 
 const tile = StyleSheet.create({
-  box: { borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  box: { borderRadius: radius.lg - 4, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   blob: { position: 'absolute', opacity: 0.85 },
-  badge: { position: 'absolute', left: space.xs, top: space.xs, fontSize: 18 },
+  wash: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingVertical: 3, alignItems: 'center', opacity: 0.95 },
+  washText: { fontWeight: '800' },
+  check: { position: 'absolute', left: space.xs, top: space.xs, width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   heart: {
     position: 'absolute',
     right: -6,

@@ -4,6 +4,7 @@ import Svg, { Circle, Defs, Ellipse, G, LinearGradient, Path, Rect, Stop } from 
 
 import { avatarBody, AVATAR_VIEW, type AvatarGeometry } from '@/domain/fit/avatarBody';
 import { placeGarments, visibleWorn } from '@/domain/fit/place';
+import type { Face } from '@/domain/reactions';
 import type { AvatarLook, ClothingItem, HairStyle } from '@/domain/types';
 import { CLOTHING_HEX } from '@/ui/theme';
 
@@ -30,7 +31,23 @@ const shade = (hex: string, f: number) => {
   return `#${[(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => ch(v).toString(16).padStart(2, '0')).join('')}`;
 };
 
-export function Avatar({ look, outfit = [], size = 260, label }: { look: AvatarLook; outfit?: ClothingItem[]; size?: number; label: string }) {
+export function Avatar({
+  look,
+  outfit = [],
+  size = 260,
+  label,
+  face = 'smile',
+  blink = false,
+}: {
+  look: AvatarLook;
+  outfit?: ClothingItem[];
+  size?: number;
+  label: string;
+  /** Her expression (reactions, D-067). */
+  face?: Face;
+  /** Eyes shut for a moment (idle blinking). */
+  blink?: boolean;
+}) {
   const g = avatarBody(look);
   // Unique per avatar: several avatars on one web page must not share SVG ids.
   const shadeId = `skin${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
@@ -74,7 +91,7 @@ export function Avatar({ look, outfit = [], size = 260, label }: { look: AvatarL
         />
       ))}
       <Svg width={w} height={size} viewBox={view} style={{ position: 'absolute' }} pointerEvents="none">
-        <Head g={g} skin={skin} hair={hair} eyes={eyes} look={look} />
+        <Head g={g} skin={skin} hair={hair} eyes={eyes} look={look} face={face} blink={blink} />
       </Svg>
     </View>
   );
@@ -281,7 +298,7 @@ function HairBack({ g, style, color }: { g: AvatarGeometry; style: HairStyle; co
   return <G transform={tf}>{d}</G>;
 }
 
-function Head({ g, skin, hair, eyes, look }: { g: AvatarGeometry; skin: string; hair: string; eyes: string; look: AvatarLook }) {
+function Head({ g, skin, hair, eyes, look, face, blink }: { g: AvatarGeometry; skin: string; hair: string; eyes: string; look: AvatarLook; face: Face; blink: boolean }) {
   const tf = `translate(${g.cx} ${g.headCy}) scale(${g.hf})`;
   const brow = shade(hair, 0.8);
   const line = '#3A2230';
@@ -310,21 +327,42 @@ function Head({ g, skin, hair, eyes, look }: { g: AvatarGeometry; skin: string; 
           [8, 8],
           [13, 8.5],
         ].map(([x, y]) => <Circle key={`${x},${y}`} cx={x} cy={y} r={0.75} fill={shade(skin, 0.7)} />)}
-      {/* eyes */}
-      {[-8, 8].map((x) => (
-        <G key={x}>
-          <Ellipse cx={x} cy={2} rx={4.6} ry={5.2} fill="#FFFFFF" />
-          <Circle cx={x} cy={2.6} r={3.3} fill={eyes} />
-          <Circle cx={x} cy={2.8} r={1.6} fill="#1A1014" />
-          <Circle cx={x + 1.1} cy={1.2} r={1} fill="#FFFFFF" />
-          <Path d={`M${x - 4.8},${0} Q${x},${-4.6} ${x + 4.8},${0}`} stroke={line} strokeWidth={1.2} fill="none" strokeLinecap="round" />
-          <Path d={x < 0 ? `M${x - 4.6},${0.2} L${x - 6.4},${-1.6}` : `M${x + 4.6},${0.2} L${x + 6.4},${-1.6}`} stroke={line} strokeWidth={1} strokeLinecap="round" />
-          <Path d={`M${x - 4},${-6.5} Q${x},${-8.6} ${x + 4},${-6.8}`} stroke={brow} strokeWidth={1.6} fill="none" strokeLinecap="round" />
-        </G>
-      ))}
-      {/* nose + smile */}
+      {/* eyes: open, shut for a blink, happy arcs when laughing, one closed for a wink */}
+      {[-8, 8].map((x) => {
+        const shut = blink || face === 'laugh' || (face === 'wink' && x < 0);
+        const big = face === 'wow';
+        const browLift = big ? -2.2 : face === 'oops' ? (x < 0 ? -1.5 : 0.6) : 0;
+        return (
+          <G key={x}>
+            {shut ? (
+              face === 'laugh' || face === 'wink' ? (
+                <Path d={`M${x - 4.6},${3.4} Q${x},${-2.4} ${x + 4.6},${3.4}`} stroke={line} strokeWidth={1.6} fill="none" strokeLinecap="round" />
+              ) : (
+                <Path d={`M${x - 4.6},${2.2} Q${x},${4.2} ${x + 4.6},${2.2}`} stroke={line} strokeWidth={1.5} fill="none" strokeLinecap="round" />
+              )
+            ) : (
+              <>
+                <Ellipse cx={x} cy={2} rx={big ? 5.2 : 4.6} ry={big ? 6 : 5.2} fill="#FFFFFF" />
+                <Circle cx={x} cy={2.6} r={3.3} fill={eyes} />
+                <Circle cx={x} cy={2.8} r={1.6} fill="#1A1014" />
+                <Circle cx={x + 1.1} cy={1.2} r={1} fill="#FFFFFF" />
+                <Path d={`M${x - 4.8},${0} Q${x},${-4.6} ${x + 4.8},${0}`} stroke={line} strokeWidth={1.2} fill="none" strokeLinecap="round" />
+                <Path d={x < 0 ? `M${x - 4.6},${0.2} L${x - 6.4},${-1.6}` : `M${x + 4.6},${0.2} L${x + 6.4},${-1.6}`} stroke={line} strokeWidth={1} strokeLinecap="round" />
+              </>
+            )}
+            <Path d={`M${x - 4},${-6.5 + browLift} Q${x},${-8.6 + browLift} ${x + 4},${-6.8 + browLift}`} stroke={brow} strokeWidth={1.6} fill="none" strokeLinecap="round" />
+          </G>
+        );
+      })}
+      {/* nose + mouth */}
       <Path d="M-1.6,9.5 Q0,11 1.6,9.5" stroke={shade(skin, 0.75)} strokeWidth={1.1} fill="none" strokeLinecap="round" />
-      <Path d="M-5.5,14.5 Q0,19.5 5.5,14.5 Q0,17 -5.5,14.5 Z" fill="#C0475E" stroke="#A3364C" strokeWidth={0.8} strokeLinejoin="round" />
+      <Mouth face={face} />
+      {(face === 'grin' || face === 'laugh') && (
+        <>
+          <Ellipse cx={-12.5} cy={10} rx={4.6} ry={2.8} fill="#F08DA8" opacity={0.3} />
+          <Ellipse cx={12.5} cy={10} rx={4.6} ry={2.8} fill="#F08DA8" opacity={0.3} />
+        </>
+      )}
       {look.glasses && (
         <G stroke="#3A2A44" strokeWidth={1.3} fill="#FFFFFF" fillOpacity={0.12}>
           <Circle cx={-8} cy={2} r={6.6} />
@@ -336,6 +374,28 @@ function Head({ g, skin, hair, eyes, look }: { g: AvatarGeometry; skin: string; 
       <Accessory kind={look.accessory ?? 'none'} hair={hair} style={style} />
     </G>
   );
+}
+
+function Mouth({ face }: { face: Face }) {
+  switch (face) {
+    case 'grin':
+    case 'laugh':
+      return (
+        <G>
+          <Path d="M-7,13 Q0,24 7,13 Z" fill="#9E2F47" stroke="#86263C" strokeWidth={0.8} strokeLinejoin="round" />
+          <Path d="M-6,13.4 L6,13.4 L5.2,15.2 L-5.2,15.2 Z" fill="#FFFFFF" />
+          <Ellipse cx={0} cy={19.6} rx={3} ry={1.5} fill="#F07A93" />
+        </G>
+      );
+    case 'wow':
+      return <Ellipse cx={0} cy={16} rx={3.2} ry={4} fill="#9E2F47" stroke="#86263C" strokeWidth={0.8} />;
+    case 'oops':
+      return <Path d="M-5,16 Q-2.5,13.6 0,16 Q2.5,18.4 5,16" stroke="#A3364C" strokeWidth={1.6} fill="none" strokeLinecap="round" />;
+    case 'wink':
+      return <Path d="M-6,14 Q1,20.5 6.5,13" stroke="#A3364C" strokeWidth={1.8} fill="none" strokeLinecap="round" />;
+    default:
+      return <Path d="M-5.5,14.5 Q0,19.5 5.5,14.5 Q0,17 -5.5,14.5 Z" fill="#C0475E" stroke="#A3364C" strokeWidth={0.8} strokeLinejoin="round" />;
+  }
 }
 
 function HairFront({ style, color }: { style: HairStyle; color: string }) {
