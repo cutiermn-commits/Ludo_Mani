@@ -19,7 +19,7 @@ _Last updated: 2026-11-18 (Claude Code)_
 ## What she can do now (5-line note)
 1. Pick Dansk/English; a grown-up answers the maths gate (and the weather question); she picks a nickname, age band and makes her avatar.
 2. **Me:** a rich avatar (skin, hair, style, eyes, height and shape from pictures, glasses, freckles, earrings, hair things) and, if she wants, a full-body photo of herself; the phone finds her shoulders, hips and feet (or she taps them).
-3. **Wardrobe:** take or choose a photo of each piece and pick what it is. The background is cut out on the device. 🫧 marks a piece as in the wash (D-067).
+3. **Wardrobe:** take or choose a photo of each piece and pick what it is. The background is cut out on the device. 🫧 marks a piece as in the wash (D-067). Each piece is measured and turned the right way up when saved; **Turn** fixes it by hand (D-068).
 4. **My day:** tap clothes from her wardrobe to put them on or take them off; see them on the avatar or her photo; move or resize any piece. A small weather line on top.
 5. Run it: `cd wardrobe-buddy && npm install && npx expo start` (press `w` for web), or the web app https://wardrobe-buddy.github.io/, or the Android preview APK.
 

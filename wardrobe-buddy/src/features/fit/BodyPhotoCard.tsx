@@ -3,6 +3,7 @@ import { ActivityIndicator, View } from 'react-native';
 
 import { useApp } from '@/features/app/AppState';
 import { PhotoStatus, usePhotoAction } from '@/features/photos/PhotoAction';
+import { saveJpeg, rotateAndSave } from '@/services/photos/pipeline';
 import { pickBodyPhoto, processBodyPhoto } from '@/services/photos/selfie';
 import { detectPose } from '@/services/pose/detect';
 import { useRunPose } from '@/services/pose/types';
@@ -64,6 +65,23 @@ export function BodyPhotoCard({ width = 220 }: { width?: number }) {
         await find(res);
       },
     );
+
+  /** A quarter turn clockwise, for a photo that shows up sideways (D-068). Then she's found again. */
+  const turn = async () => {
+    if (!uri) return;
+    photoVersion.current += 1;
+    setFound('finding');
+    try {
+      const r = await rotateAndSave(uri, 90, { format: 'jpeg', compress: 0.8 });
+      const turned = await saveJpeg(r, photos);
+      await photos.discard(r.uri);
+      await updateProfile({ selfieUri: turned, photoAspect: Math.round((r.width / r.height) * 1000) / 1000, photoPose: undefined, photoPoseSource: undefined });
+      await photos.remove(uri);
+      await find({ uri: turned, width: r.width, height: r.height });
+    } catch {
+      setFound('failed');
+    }
+  };
 
   const remove = async () => {
     photoVersion.current += 1;
@@ -127,6 +145,7 @@ export function BodyPhotoCard({ width = 220 }: { width?: number }) {
           <Chip icon="🖼️" label={t('photo.choose')} onPress={() => void add('library')} />
           {uri && <Chip icon="✨" label={t('body.findAgain')} onPress={() => void find({ uri, width: Math.round((profile.photoAspect ?? 0.75) * 1000), height: 1000 })} />}
           {uri && <Chip icon="👆" label={t('body.markMyself')} onPress={() => setMarking(true)} />}
+          {uri && <Chip icon="↻" label={t('body.turn')} onPress={() => void turn()} />}
           {uri && <Chip icon="✖️" label={t('photo.remove')} onPress={() => void remove()} />}
         </Row>
       )}

@@ -232,3 +232,60 @@ Format: ID · date · decision · why · alternatives · status. Claude Code add
   - Built only with React Native `Animated` and the existing react-native-svg (no new dependency).
   - `boxShadow` and `transformOrigin` are VERIFIED present in RN 0.88's style processing and passed through by react-native-web.
 - **NOT VERIFIED:** animation smoothness and battery use on a mid-range Android phone (browser test only).
+
+## D-068 — Clothes that actually fit: measured garments, turned upright, sleeves follow the arms (2026-11-20)
+- **Owner feedback (device test):** "the clothes are not properly fitting to the avatar picture. It's not at all working. Also picture orientation is a problem." The owner asked for thorough testing with tops, T-shirts, shirts, dresses ("frock"), hoodies, trousers, jeans and more, on the avatar and on a person.
+- **Root causes found:**
+  - The earlier tests used five hand-drawn, perfectly clean shapes. A new **fit lab** (`scripts/fit-lab`) generates 65 realistic synthetic flat-lay photos and runs the app's own code on them:
+    - 16 garment types, with fabric texture, wrinkles, shadows and noise
+    - on wood, carpet, a bed sheet, tiles, a dark floor and a busy rug
+    - upright, sideways, upside down, and stored sideways with EXIF
+  - Findings on the old code:
+    1. **The cut-out failed on 19 of 64 normal photos.** Those garments were then drawn as plain coloured shapes. The flood fill crept through low-contrast fabric.
+    2. **Nothing was ever turned.** Flat-lay photos taken from the side or upside down were worn that way.
+    3. **Garments were sized by their whole outline, sleeves included.** A long-sleeved top laid flat with its arms out became tiny, and flat-lay sleeves stuck out sideways while the avatar's arms hung down. A hood covered the face.
+    4. **The forced square crop let her cut garments off at the frame.** The body photo's forced 3:4 crop could cut her feet off.
+- **Decision (all on the device, no new dependency, no new permission, no network):**
+  - **Cut-out (`domain/image/cutout.ts`):**
+    - Background colours are clusters from the border (k-means), allowing the same colour in shadow or light falloff.
+    - Garment colours are clustered too. Pixels are classified on a lightly smoothed copy, scaled to the picture size.
+    - Small gaps are closed and enclosed holes filled (stripes, checks).
+    - Ragged, bitten outlines are refused.
+  - **Privacy guard, checked first:** anything unlike the border's main colour that runs off the frame's edge refuses the cut-out, so a person can never become "background" and leave a face behind. The test "refuses a person photographed from the waist up" still passes.
+  - **Shape (`domain/fit/garmentShape.ts`), measured from the cut-out when the item is saved:**
+    - **Which way up:** clothes are left–right mirror-symmetric when upright. Then the garment's own features decide: hem against neckline for tops and dresses, flare for dresses and skirts, waistband against two legs for trousers.
+    - **The body:** centre, body width without the sleeves (or the waistband), and the shoulder-seam line.
+    - **Each sleeve:** pivot, angle, length and width.
+    - **Stored with the item:** `shape` and `turnedByHand`.
+    - **Automatic turning:** the cut-out (and the tile photo) is turned automatically unless she pressed **Turn** herself.
+    - **Clothes saved earlier** are measured once in the background.
+  - **Wearing (`domain/fit/place.ts`, `features/fit/GarmentLayer.tsx`):**
+    - A shaped garment is sized and placed by its shoulder seams (or its waistband), not its outline.
+    - Each sleeve is cut out with a rectangle and turned around the shoulder seam to follow the arm. On the avatar the arms hang relaxed at 76°. On her photo the direction comes from the elbows or wrists found by MoveNet; it's taken as 80° when not known.
+    - A hood above the collar is left out.
+    - Trousers end at the ankles; leggings are worn a little wider than they lie.
+    - The same code runs for the avatar and the photo.
+  - **Orientation tools:**
+    - **Turn** button in the item editor.
+    - **Turn photo** for her own photo (the pose is found again).
+    - No forced crop when picking photos.
+    - On phones, resizing gives only the width, so a picture keeps its real proportions even if the picker reports its size the wrong way round.
+- **Measured (fit lab, synthetic photos, 2026-11-20):**
+
+  | Measure | 300 px (phone) | 160 px (web) |
+  |---|---|---|
+  | Clean cut-out | 59/64 (old: 45/64) | 60/64 |
+  | Right way up (shoes excluded by design) | 54/56 | 54/58 |
+  | Shoulder-seam / waistband error, median | 8 % of its width | 7 % |
+  | Same, 90th percentile | 14 % | 15 % |
+
+  - **Still refused** (honest "couldn't cut this out"): grey hoodie on grey carpet or tiles, beige shorts on tiles, white trainers on a white sheet.
+  - **Accepted although wrong:** 2 of 64 (a white checked shirt on light tiles, beige shorts on beige wood). The "Cut out!" message now asks her to check the picture and retake it on a different floor if it doesn't look like her clothes.
+  - **Browser test** (real app, Chromium): 16 garments added through the UI, 10 outfits on the avatar and on 3 imaginary people, one of them a sideways-stored phone photo. All upright; sleeves follow the arms. No errors, no outside requests.
+  - **Speed: ESTIMATE.** Cut-out plus measuring takes about 0.7–1.1 s per garment at 300 px with the JIT turned off (node --jitless, desktop CPU), as a stand-in for Hermes. A mid-range phone may be 2–4× slower.
+- **NOT VERIFIED:**
+  - real photos (only synthetic ones can be used here)
+  - speed and memory on her phone
+  - the nested clipping and turning views on Android (they work in the browser)
+  - the native picker's sizes for camera photos without the crop step
+- **Privacy:** no new data leaves the device. The photo's pose now also keeps two arm points (elbow or wrist), next to the six existing points; they stay on the device. This widens the existing open legal question (D-064) on whether pose points are biometric data.

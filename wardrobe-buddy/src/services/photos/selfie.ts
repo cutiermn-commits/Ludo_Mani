@@ -20,7 +20,8 @@ const BODY_WIDTH = Platform.OS === 'web' ? 420 : 720;
 export const BODY_PHOTO_BLURRED = false;
 
 /** Full-body photo of herself (D-063). Back camera: someone else takes it, or she picks a mirror photo. */
-export const pickBodyPhoto = (source: 'camera' | 'library'): Promise<PickResult> => pickImage(source, { aspect: [3, 4] });
+/** No forced crop (D-068): the 3:4 crop step could cut her feet off. */
+export const pickBodyPhoto = (source: 'camera' | 'library'): Promise<PickResult> => pickImage(source, { crop: false });
 
 /**
  * Full-body photo → resized JPEG without metadata → sandbox. NOT blurred: the owner chose to test

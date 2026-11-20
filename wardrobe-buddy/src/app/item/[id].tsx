@@ -9,7 +9,8 @@ import { PhotoStatus, usePhotoAction } from '@/features/photos/PhotoAction';
 import { draftsToDiscard } from '@/features/wardrobe/drafts';
 import { ItemTile, itemIcon } from '@/features/wardrobe/visuals';
 import type { TKey } from '@/i18n';
-import { makeCutout, pickClothes, processPhoto } from '@/services/photos/capture';
+import { needsShape } from '@/domain/fit/garmentShape';
+import { makeCutout, pickClothes, processPhoto, readGarmentPhoto } from '@/services/photos/capture';
 import { Button, Card, Chip, Row, Screen, T } from '@/ui/components';
 import { space } from '@/ui/theme';
 
@@ -52,17 +53,44 @@ export default function ItemEditor() {
   );
   const set = (p: Partial<ClothingItem>) => setItem((x) => ({ ...x, ...p }));
 
+  const [turning, setTurning] = useState(false);
+
+  /** Her "turn" button: a quarter turn clockwise, and from then on her way up is kept. */
+  const turn = async () => {
+    setTurning(true);
+    try {
+      const r = await readGarmentPhoto(item, photos, { extraTurn: 1, auto: false });
+      if (!r) return;
+      for (const u of [r.cutoutUri, r.photoUri]) if (u && !drafts.current.includes(u)) drafts.current.push(u);
+      setItem((x) => ({ ...x, cutoutUri: r.cutoutUri, cutoutAspect: r.cutoutAspect, photoUri: r.photoUri, shape: r.shape, turnedByHand: true, fit: undefined }));
+    } finally {
+      setTurning(false);
+    }
+  };
+
   const save = async () => {
     // Mark as saved before navigating, so the unmount cleanup can never delete the kept photo.
     saved.current = true;
+    let final = item;
+    if (needsShape(item)) {
+      // Measure it for wearing (and turn it the right way up, unless she turned it herself). D-068.
+      setTurning(true);
+      const r = await readGarmentPhoto(item, photos, { auto: !item.turnedByHand });
+      setTurning(false);
+      if (r) {
+        // Only newly made (turned) files are drafts; never the item's existing saved pictures.
+        if (r.turned) for (const u of [r.cutoutUri, r.photoUri]) if (u && !drafts.current.includes(u)) drafts.current.push(u);
+        final = { ...item, cutoutUri: r.cutoutUri, cutoutAspect: r.cutoutAspect, photoUri: r.photoUri, shape: r.shape };
+      }
+    }
     try {
-      await upsertItem(item); // replaces (and then deletes) the item's previous photo
+      await upsertItem(final); // replaces (and then deletes) the item's previous photo
     } catch {
       saved.current = false;
       setSaveFailed(true);
       return;
     }
-    const discard = draftsToDiscard(drafts.current, item);
+    const discard = draftsToDiscard(drafts.current, final);
     drafts.current = [];
     for (const u of discard) await photos.remove(u);
     router.back();
@@ -84,7 +112,7 @@ export default function ItemEditor() {
         if (cutoutUri) drafts.current.push(cutoutUri);
         setCutout(cutoutUri ? 'ok' : 'failed');
         // A new photo is a new garment shape: her old position tweaks no longer apply.
-        setItem((x) => ({ ...x, photoUri, cutoutUri, cutoutAspect, colors, fit: undefined }));
+        setItem((x) => ({ ...x, photoUri, cutoutUri, cutoutAspect, colors, fit: undefined, shape: undefined, turnedByHand: undefined }));
       },
     );
 
@@ -98,7 +126,7 @@ export default function ItemEditor() {
         if (!res) return setCutout('failed');
         drafts.current.push(res.cutoutUri);
         setCutout('ok');
-        setItem((x) => ({ ...x, cutoutUri: res.cutoutUri, cutoutAspect: res.cutoutAspect, fit: undefined }));
+        setItem((x) => ({ ...x, cutoutUri: res.cutoutUri, cutoutAspect: res.cutoutAspect, fit: undefined, shape: undefined, turnedByHand: undefined }));
       },
     );
 
@@ -122,9 +150,15 @@ export default function ItemEditor() {
             <Chip icon="📷" label={t('photo.take')} onPress={() => action.withCameraIntro(() => void addPhoto('camera'))} />
             <Chip icon="🖼️" label={t('photo.choose')} onPress={() => void addPhoto('library')} />
             {item.photoUri && !item.cutoutUri && <Chip icon="✂️" label={t('cutout.make')} onPress={() => void recut()} />}
+            {item.cutoutUri && !turning && <Chip icon="↻" label={t('item.turn')} onPress={() => void turn()} />}
           </Row>
         )}
         {(cutout === 'ok' || (cutout === null && item.cutoutUri)) && <T variant="small">{t('cutout.ok')}</T>}
+        {item.cutoutUri && (
+          <T variant="small" muted>
+            {t('item.turnHint')}
+          </T>
+        )}
         {(cutout === 'failed' || (cutout === null && item.photoUri && !item.cutoutUri)) && (
           <T variant="small" muted>
             {t('cutout.failed')}
@@ -144,7 +178,7 @@ export default function ItemEditor() {
         </Row>
       </Card>
 
-      <Button label={t('common.save')} onPress={save} disabled={action.state === 'working'} />
+      <Button label={t('common.save')} onPress={save} disabled={action.state === 'working' || turning} />
       {saveFailed && <T muted>{t('item.saveFailed')}</T>}
       {existing && (
         <Button

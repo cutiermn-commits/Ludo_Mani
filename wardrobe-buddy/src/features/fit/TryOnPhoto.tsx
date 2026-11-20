@@ -2,6 +2,8 @@ import { Image, View } from 'react-native';
 
 import { placeGarments, poseToPixels } from '@/domain/fit/place';
 import type { BodyPose, ClothingItem } from '@/domain/types';
+
+import { GarmentLayer } from './GarmentLayer';
 import { radius } from '@/ui/theme';
 
 /**
@@ -33,16 +35,7 @@ export function TryOnPhoto({
   return (
     <View accessible accessibilityRole="image" accessibilityLabel={label} style={{ width, height: h, borderRadius: radius.md, overflow: 'hidden' }}>
       <Image source={{ uri }} style={{ width, height: h }} resizeMode="cover" accessibilityIgnoresInvertColors importantForAccessibility="no" accessibilityElementsHidden />
-      {garments.map((g) => (
-        <Image
-          key={g.itemId}
-          source={{ uri: g.uri }}
-          resizeMode="contain"
-          importantForAccessibility="no"
-          accessibilityElementsHidden
-          style={{ position: 'absolute', left: g.box.x, top: g.box.y, width: g.box.w, height: g.box.h }}
-        />
-      ))}
+      <GarmentLayer garments={garments} />
       {showPoints &&
         px &&
         [px.lShoulder, px.rShoulder, px.lHip, px.rHip, px.lAnkle, px.rAnkle].map((p, i) => (

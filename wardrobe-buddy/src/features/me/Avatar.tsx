@@ -1,10 +1,11 @@
 import { useId, type ReactNode } from 'react';
-import { Image, View } from 'react-native';
+import { View } from 'react-native';
 import Svg, { Circle, Defs, Ellipse, G, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 import { avatarBody, AVATAR_VIEW, type AvatarGeometry } from '@/domain/fit/avatarBody';
 import { placeGarments, visibleWorn } from '@/domain/fit/place';
 import type { Face } from '@/domain/reactions';
+import { GarmentLayer } from '@/features/fit/GarmentLayer';
 import type { AvatarLook, ClothingItem, HairStyle } from '@/domain/types';
 import { CLOTHING_HEX } from '@/ui/theme';
 
@@ -80,16 +81,7 @@ export function Avatar({
           <DrawnGarment key={i.id} g={g} item={i} />
         ))}
       </Svg>
-      {garments.map((x) => (
-        <Image
-          key={x.itemId}
-          source={{ uri: x.uri }}
-          resizeMode="contain"
-          importantForAccessibility="no"
-          accessibilityElementsHidden
-          style={{ position: 'absolute', left: x.box.x * u, top: x.box.y * u, width: x.box.w * u, height: x.box.h * u }}
-        />
-      ))}
+      <GarmentLayer garments={garments} u={u} />
       <Svg width={w} height={size} viewBox={view} style={{ position: 'absolute' }} pointerEvents="none">
         <Head g={g} skin={skin} hair={hair} eyes={eyes} look={look} face={face} blink={blink} />
       </Svg>
@@ -100,12 +92,13 @@ export function Avatar({
 function Body({ g, skin, shadeId }: { g: AvatarGeometry; skin: string; shadeId: string }) {
   const { cx, shoulderY: sy, shoulderHalf: sh, waistY, waistHalf: wh, hipY, hipHalf: hh } = g;
   const arm = (side: -1 | 1) => {
-    const x0 = cx + side * (sh - g.armW * 0.35);
-    const x1 = cx + side * (sh + g.armW * 0.25);
+    const top = g.armAt(side, 0.02);
+    const start = { x: cx + side * (sh - g.armW * 0.45), y: sy + 4 };
+    const w = g.wrist(side);
     return (
       <G key={side}>
-        <Path d={`M${x0},${sy + 3} L${x1},${g.wristY}`} stroke={skin} strokeWidth={g.armW} strokeLinecap="round" />
-        <Circle cx={x1} cy={g.wristY + 3 * g.hf} r={5.2 * g.hf} fill={skin} />
+        <Path d={`M${start.x},${start.y} L${top.x + side * 2},${top.y + 6} L${w.x},${w.y}`} stroke={skin} strokeWidth={g.armW} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        <Circle cx={w.x + side * 0.8} cy={w.y + 3 * g.hf} r={5.2 * g.hf} fill={skin} />
       </G>
     );
   };
@@ -180,38 +173,34 @@ function DrawnGarment({ g, item }: { g: AvatarGeometry; item: ClothingItem }) {
   const edge = shade(fill, 0.82);
   const { cx, shoulderY: sy, shoulderHalf: sh, waistY, waistHalf: wh, hipY, hipHalf: hh } = g;
   const longSleeves = ['sweater', 'hoodie', 'shirt'].includes(item.subcategory ?? '');
-  const sleeveEnd = longSleeves ? g.wristY - 2 : g.Y(106);
-  const sleeves = (end: number, extra = 0) =>
-    [-1, 1].map((side) => (
-      <Path
-        key={side}
-        d={`M${cx + side * (sh - g.armW * 0.35)},${sy + 3} L${cx + side * (sh + g.armW * 0.12)},${end}`}
-        stroke={fill}
-        strokeWidth={g.armW + 3 + extra}
-        strokeLinecap="round"
-      />
-    ));
+  /** Sleeves follow the arms: `reach` is how far down the arm they go (1 = to the wrist). */
+  const sleeves = (reach: number, extra = 0) =>
+    [-1, 1].map((side) => {
+      const a = g.armAt(side as -1 | 1, 0.06);
+      const b = g.armAt(side as -1 | 1, reach);
+      return <Path key={side} d={`M${cx + side * (sh - g.armW * 0.35)},${sy + 3} L${a.x},${a.y + 3} L${b.x},${b.y}`} stroke={fill} strokeWidth={g.armW + 3 + extra} strokeLinecap="round" strokeLinejoin="round" fill="none" />;
+    });
   const torso = (bottom: number, flare = 0) =>
     `M${cx - sh},${sy + 5} Q${cx - sh},${sy - 3} ${cx - sh + 9},${sy - 4} L${cx - 6},${sy - 4} Q${cx},${sy + 3} ${cx + 6},${sy - 4} L${cx + sh - 9},${sy - 4} Q${cx + sh},${sy - 3} ${cx + sh},${sy + 5} L${cx + wh + 2},${waistY} L${cx + hh + 2 + flare},${bottom} L${cx - hh - 2 - flare},${bottom} L${cx - wh - 2},${waistY} Z`;
   switch (item.category) {
     case 'top':
       return (
         <G>
-          {sleeves(sleeveEnd)}
+          {sleeves(longSleeves ? 0.92 : 0.3)}
           <Path d={torso(hipY + 2)} fill={fill} stroke={edge} strokeWidth={0.8} />
         </G>
       );
     case 'dress':
       return (
         <G>
-          {sleeves(g.Y(100))}
+          {sleeves(0.24)}
           <Path d={torso(g.Y(196), 10)} fill={fill} stroke={edge} strokeWidth={0.8} />
         </G>
       );
     case 'outerwear':
       return (
         <G>
-          {sleeves(g.wristY - 1, 2)}
+          {sleeves(0.95, 2)}
           <Path d={`M${cx - sh - 2},${sy + 4} Q${cx - sh - 1},${sy - 4} ${cx - sh + 9},${sy - 5} L${cx - 5},${sy - 3} L${cx - 9},${hipY + 10} L${cx - hh - 5},${hipY + 10} Z`} fill={fill} stroke={edge} strokeWidth={0.8} />
           <Path d={`M${cx + sh + 2},${sy + 4} Q${cx + sh + 1},${sy - 4} ${cx + sh - 9},${sy - 5} L${cx + 5},${sy - 3} L${cx + 9},${hipY + 10} L${cx + hh + 5},${hipY + 10} Z`} fill={fill} stroke={edge} strokeWidth={0.8} />
         </G>

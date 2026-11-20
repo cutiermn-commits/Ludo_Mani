@@ -73,8 +73,40 @@ export interface ClothingItem {
   inLaundry: boolean;
   /** Her own fine-tuning of where the garment sits when worn (D-065); same on the avatar and her photo. */
   fit?: GarmentFit;
+  /** The garment's measured shape, read from the cut-out (D-068). Missing for old items until re-read. */
+  shape?: GarmentShape;
+  /** She turned the picture herself: don't turn it automatically again. */
+  turnedByHand?: boolean;
   /** ISO timestamp, supplied by the caller (never Date.now() inside the engine). */
   createdAt: string;
+}
+
+/** A sleeve of a garment cut-out (D-068): x as a share of the cut-out's width, y of its height. */
+export interface SleeveShape {
+  /** Where the sleeve hangs from (the shoulder seam). */
+  pivot: Pt;
+  /** Degrees below horizontal, pointing outwards (0 = straight out, 90 = straight down). */
+  angle: number;
+  /** Length and width, as shares of the cut-out's width. */
+  length: number;
+  width: number;
+}
+
+/**
+ * A garment's measured shape (D-068), as shares of its cut-out: centre line, half the body's width
+ * (without sleeves; the waistband for trousers and skirts), and the y of the shoulder seams or the
+ * waistband.
+ */
+export interface GarmentShape {
+  v: 1;
+  /** The type it was measured as (a top is measured differently from trousers). */
+  of: Category;
+  cx: number;
+  bodyHalf: number;
+  top: number;
+  sleeves?: { l?: SleeveShape; r?: SleeveShape };
+  /** Stretchy legwear (leggings): worn wider than it lies. */
+  stretchy?: boolean;
 }
 
 /** dx/dy move the garment in shoulder-widths; scale resizes it (1 = automatic size). */
@@ -126,6 +158,9 @@ export interface BodyPose {
   rHip: Pt;
   lAnkle: Pt;
   rAnkle: Pt;
+  /** Where the arms point, when known (D-068): the elbow, or the wrist, on each side of the picture. */
+  lArm?: Pt;
+  rArm?: Pt;
 }
 
 export interface Profile {

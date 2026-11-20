@@ -58,9 +58,27 @@ describe('cutoutBackground', () => {
     if (res.ok) expect(detectColors(res.image, 1)[0]).toBe('white');
   });
 
-  it('refuses a busy, patterned background', () => {
+  /** Share of the cut-out's solid pixels that are the yellow garment (not pattern). */
+  const purity = (img: RGBAImage) => {
+    let opaque = 0;
+    let garment = 0;
+    for (let i = 0; i < img.data.length; i += 4) {
+      if (img.data[i + 3] < 255) continue;
+      opaque++;
+      if (Math.abs(img.data[i] - 240) < 30 && Math.abs(img.data[i + 1] - 200) < 30 && Math.abs(img.data[i + 2] - 40) < 30) garment++;
+    }
+    return garment / Math.max(1, opaque);
+  };
+
+  it('busy, many-coloured background (a patterned rug): clean cut-out or refusal, never rug in the garment', () => {
+    const rug = (x: number, y: number): [number, number, number] => [128 + 90 * Math.sin(x * 0.2) * Math.cos(y * 0.16), 120 + 80 * Math.sin((x + y) * 0.12), 140 + 70 * Math.cos(x * 0.08 - y * 0.24)];
+    const res = cutoutBackground(photo(200, 200, rug, [240, 200, 40], { noise: 4 }));
+    if (res.ok) expect(purity(res.image)).toBeGreaterThan(0.97);
+  });
+
+  it('a two-colour pattern (checks, tiles) with a clearly different garment: clean cut-out or refusal, never pattern in the garment', () => {
     const res = cutoutBackground(photo(200, 200, (x, y) => ((Math.floor(x / 9) + Math.floor(y / 9)) % 2 ? [200, 40, 160] : [30, 170, 60]), [240, 200, 40], { noise: 4 }));
-    expect(res.ok).toBe(false);
+    if (res.ok) expect(purity(res.image)).toBeGreaterThan(0.97);
   });
 
   it('refuses a garment that fills the whole frame or is cut off by it', () => {

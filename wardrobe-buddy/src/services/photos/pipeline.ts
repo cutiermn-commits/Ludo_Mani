@@ -1,5 +1,6 @@
 import { ImageManipulator, SaveFormat, type ImageResult } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
+import { Platform } from 'react-native';
 
 import { base64ToBytes } from '@/domain/image/base64';
 import { stripJpegMetadata } from '@/domain/image/jpeg';
@@ -19,11 +20,12 @@ export type PickResult = ({ kind: 'ok' } & Picked) | { kind: 'canceled' } | { ki
  * One way to pick a photo. The library uses the system picker (no permission prompt, Expo SDK 58
  * docs); the camera asks for permission only now, after the app's own explanation (PRIVACY_SAFETY §2.4).
  */
-export async function pickImage(source: 'camera' | 'library', opts: { aspect: [number, number]; front?: boolean }): Promise<PickResult> {
+export async function pickImage(source: 'camera' | 'library', opts: { aspect?: [number, number]; crop?: boolean; front?: boolean }): Promise<PickResult> {
+  const crop = opts.crop !== false && !!opts.aspect;
   const options: ImagePicker.ImagePickerOptions = {
     mediaTypes: ['images'],
-    allowsEditing: true,
-    aspect: opts.aspect,
+    allowsEditing: crop,
+    ...(crop ? { aspect: opts.aspect } : {}),
     quality: 1,
     exif: false,
     base64: false,
@@ -69,7 +71,23 @@ export async function resizeAndSave(
   const w = Math.max(1, Math.min(targetWidth, width));
   const h = Math.max(1, Math.round((height * w) / width));
   const ctx = ImageManipulator.manipulate(src.uri);
-  ctx.resize({ width: w, height: h });
+  // On phones only the width is given: the manipulator keeps the picture's real proportions even if
+  // the picker reported its size the wrong way round for a turned camera photo (D-068). The browser
+  // needs both (with height null it produced NaN, 2026-11-17); there sizes come from the image itself.
+  ctx.resize(Platform.OS === 'web' ? { width: w, height: h } : { width: w });
+  const ref = await ctx.renderAsync();
+  try {
+    return await ref.saveAsync({ format: save.format === 'png' ? SaveFormat.PNG : SaveFormat.JPEG, compress: save.compress, base64: true });
+  } finally {
+    release(ref);
+    release(ctx);
+  }
+}
+
+/** Turns a picture by a multiple of 90° (clockwise) and saves it. */
+export async function rotateAndSave(uri: string, degrees: number, save: { format: 'jpeg' | 'png'; compress?: number }): Promise<ImageResult> {
+  const ctx = ImageManipulator.manipulate(uri);
+  ctx.rotate(degrees);
   const ref = await ctx.renderAsync();
   try {
     return await ref.saveAsync({ format: save.format === 'png' ? SaveFormat.PNG : SaveFormat.JPEG, compress: save.compress, base64: true });

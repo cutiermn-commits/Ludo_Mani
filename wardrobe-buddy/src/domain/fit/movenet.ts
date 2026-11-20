@@ -9,7 +9,7 @@ import type { BodyPose, Pt } from '@/domain/types';
  * 0–1 of the input square. Keypoint order (COCO): 5/6 shoulders, 11/12 hips, 13/14 knees, 15/16 ankles.
  */
 export const MOVENET_SIZE = 192;
-const KP = { lShoulder: 5, rShoulder: 6, lHip: 11, rHip: 12, lKnee: 13, rKnee: 14, lAnkle: 15, rAnkle: 16 } as const;
+const KP = { lShoulder: 5, rShoulder: 6, lElbow: 7, rElbow: 8, lWrist: 9, rWrist: 10, lHip: 11, rHip: 12, lKnee: 13, rKnee: 14, lAnkle: 15, rAnkle: 16 } as const;
 /** ASSUMPTION starting value: below this the point is treated as not found. */
 export const MIN_SCORE = 0.25;
 
@@ -73,13 +73,26 @@ export function decodePose(kp: ArrayLike<number>, lb: Pick<Letterbox, 'scale' | 
     if (found(knee)) return { x: knee.x, y: knee.y + (knee.y - hip.y) };
     return { x: hip.x, y: hip.y + torso * 1.6 };
   };
+  // Left/right as seen in the picture (smaller x first), with each arm's direction: the elbow
+  // (sleeves cover the upper arm), else the wrist (D-068).
+  const sides = [
+    { s: p.lShoulder, e: p.lElbow, w: p.lWrist },
+    { s: p.rShoulder, e: p.rElbow, w: p.rWrist },
+  ].sort((a, b) => a.s.x - b.s.x);
+  const arm = (a: (typeof sides)[number]) => (found(a.e) ? pt(a.e) : found(a.w) ? pt(a.w) : undefined);
+  const [lA, rA] = [arm(sides[0]), arm(sides[1])];
+  const byX = <T extends Pt>(a: T, b: T): [Pt, Pt] => (a.x <= b.x ? [pt(a), pt(b)] : [pt(b), pt(a)]);
+  const [lHip, rHip] = byX(p.lHip, p.rHip);
+  const [lAnkle, rAnkle] = byX(foot(p.lAnkle, p.lKnee, p.lHip), foot(p.rAnkle, p.rKnee, p.rHip));
   const pose: BodyPose = {
-    lShoulder: pt(p.lShoulder),
-    rShoulder: pt(p.rShoulder),
-    lHip: pt(p.lHip),
-    rHip: pt(p.rHip),
-    lAnkle: foot(p.lAnkle, p.lKnee, p.lHip),
-    rAnkle: foot(p.rAnkle, p.rKnee, p.rHip),
+    lShoulder: pt(sides[0].s),
+    rShoulder: pt(sides[1].s),
+    lHip,
+    rHip,
+    lAnkle,
+    rAnkle,
+    ...(lA ? { lArm: lA } : {}),
+    ...(rA ? { rArm: rA } : {}),
   };
   return { ok: true, pose, estimatedFeet };
 }

@@ -8,6 +8,9 @@ import type { AvatarBuild, AvatarHeight, AvatarLook, BodyPose } from '@/domain/t
  */
 export const AVATAR_VIEW = { w: 160, h: 260 } as const;
 
+/** The avatar's arms, in degrees below horizontal (90 = straight down). */
+export const ARM_POSE_DEG = 76;
+
 const HEIGHT: Record<AvatarHeight, number> = { shorter: 0.9, medium: 1, taller: 1.07 };
 const BUILD: Record<AvatarBuild, number> = { 1: 0.88, 2: 1, 3: 1.14 };
 
@@ -43,6 +46,20 @@ export function avatarBody(look: Pick<AvatarLook, 'height' | 'build'>) {
     legX: W(10.5),
     ankleX: W(9),
   };
+  // Arms hang relaxed, a little away from the body (D-068), so sleeves can follow them.
+  const armRad = (ARM_POSE_DEG * Math.PI) / 180;
+  const armLen = 71 * hf;
+  const shoulderJoint = (side: -1 | 1) => ({ x: cx + side * W(22), y: g.shoulderY + 1 });
+  const wrist = (side: -1 | 1) => {
+    const s = shoulderJoint(side);
+    return { x: s.x + side * Math.cos(armRad) * armLen, y: s.y + Math.sin(armRad) * armLen };
+  };
+  /** A point a share `f` of the way down the arm (0 = shoulder joint, 1 = wrist). */
+  const armAt = (side: -1 | 1, f: number) => {
+    const s = shoulderJoint(side);
+    const w = wrist(side);
+    return { x: s.x + (w.x - s.x) * f, y: s.y + (w.y - s.y) * f };
+  };
   const pose: BodyPose = {
     lShoulder: { x: cx - W(22), y: g.shoulderY + 1 },
     rShoulder: { x: cx + W(22), y: g.shoulderY + 1 },
@@ -50,8 +67,10 @@ export function avatarBody(look: Pick<AvatarLook, 'height' | 'build'>) {
     rHip: { x: cx + W(10.5), y: g.hipY },
     lAnkle: { x: cx - g.ankleX, y: g.ankleY + 2 },
     rAnkle: { x: cx + g.ankleX, y: g.ankleY + 2 },
+    lArm: wrist(-1),
+    rArm: wrist(1),
   };
-  return { ...g, Y, W, pose };
+  return { ...g, Y, W, pose, wrist, armAt, shoulderJoint };
 }
 
 export type AvatarGeometry = ReturnType<typeof avatarBody>;

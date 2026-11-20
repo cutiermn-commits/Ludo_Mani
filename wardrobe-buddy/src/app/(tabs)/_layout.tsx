@@ -2,6 +2,7 @@ import { Link, Redirect, Tabs } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 
 import { useApp } from '@/features/app/AppState';
+import { useShapeUpgrade } from '@/features/fit/useShapeUpgrade';
 import { useTheme } from '@/ui/useTheme';
 
 function TabIcon({ glyph, focused }: { glyph: string; focused: boolean }) {
@@ -18,6 +19,7 @@ function TabIcon({ glyph, focused }: { glyph: string; focused: boolean }) {
 export default function TabLayout() {
   const { profile, t } = useApp();
   const c = useTheme();
+  useShapeUpgrade();
   if (!profile) return <Redirect href="/onboarding" />;
 
   const gear = () => (

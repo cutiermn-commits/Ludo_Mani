@@ -1,13 +1,14 @@
 import { Platform } from 'react-native';
 
 import { base64ToBytes } from '@/domain/image/base64';
+import { readGarment, turnImage, type Turn } from '@/domain/fit/garmentShape';
 import { detectColors } from '@/domain/image/colorDetect';
 import { cutoutBackground } from '@/domain/image/cutout';
 import { decodePng } from '@/domain/image/png';
 import { encodePng } from '@/domain/image/pngEncode';
-import type { ColorName } from '@/domain/types';
+import type { ClothingItem, ColorName, GarmentShape } from '@/domain/types';
 
-import { cleanUp, pickImage, resizeAndSave, saveJpeg, type Picked, type PickResult } from './pipeline';
+import { cleanUp, pickImage, resizeAndSave, rotateAndSave, saveJpeg, type Picked, type PickResult } from './pipeline';
 import type { PhotoStore } from './types';
 
 export type { PickResult } from './pipeline';
@@ -19,7 +20,8 @@ const PHOTO_QUALITY = Platform.OS === 'web' ? 0.5 : 0.75;
 const CUTOUT_WIDTH = Platform.OS === 'web' ? 160 : 300;
 const THUMB = 24;
 
-export const pickClothes = (source: 'camera' | 'library'): Promise<PickResult> => pickImage(source, { aspect: [1, 1] });
+/** No forced square crop (D-068): a tight crop cut garments off at the frame, and it was an extra step. */
+export const pickClothes = (source: 'camera' | 'library'): Promise<PickResult> => pickImage(source, { crop: false });
 
 export interface ProcessedPhoto {
   photoUri: string;
@@ -88,6 +90,59 @@ export async function processPhoto(src: Picked, store: PhotoStore): Promise<Proc
       // Colour suggestion is a nice-to-have; she can always pick colours herself.
     }
     return { photoUri, colors };
+  } finally {
+    await cleanUp(store, temps);
+  }
+}
+
+export interface ReadGarmentResult {
+  cutoutUri: string;
+  cutoutAspect: number;
+  photoUri?: string;
+  shape?: GarmentShape;
+  /** Quarter turns (clockwise) applied to the pictures; 0 = unchanged (same URIs). */
+  turned: Turn;
+}
+
+/**
+ * Measures a garment's cut-out for wearing (D-068) and, unless she turned it herself, turns it the
+ * right way up. `extraTurn` is her own "turn" button. When the pictures are turned, new files are
+ * saved (the caller's item update deletes the old ones). On the device only.
+ */
+export async function readGarmentPhoto(
+  item: Pick<ClothingItem, 'cutoutUri' | 'photoUri' | 'category' | 'subcategory'>,
+  store: PhotoStore,
+  opts: { extraTurn?: Turn; auto?: boolean } = {},
+): Promise<ReadGarmentResult | null> {
+  if (!item.cutoutUri) return null;
+  const temps: (string | undefined)[] = [];
+  try {
+    const png = await resizeAndSave({ uri: item.cutoutUri, width: 0, height: 0 }, 4096, { format: 'png' });
+    temps.push(png.uri);
+    if (!png.base64) return null;
+    let img = decodePng(base64ToBytes(png.base64));
+    const extra = (opts.extraTurn ?? 0) as Turn;
+    img = turnImage(img, extra);
+    const read = readGarment(img, item.category, item.subcategory, opts.auto !== false && extra === 0);
+    img = turnImage(img, read.turn);
+    const turned = ((extra + read.turn) % 4) as Turn;
+    const aspect = Math.round((img.width / img.height) * 1000) / 1000;
+    if (turned === 0) return { cutoutUri: item.cutoutUri, cutoutAspect: aspect, photoUri: item.photoUri, shape: read.shape, turned };
+    const raw = await store.temp(encodePng(img), 'image/png');
+    temps.push(raw);
+    const small = await resizeAndSave({ uri: raw, width: img.width, height: img.height }, CUTOUT_WIDTH, { format: 'png' });
+    temps.push(small.uri);
+    if (!small.base64) return null;
+    const cutoutUri = await store.save(base64ToBytes(small.base64), 'png');
+    let photoUri = item.photoUri;
+    if (item.photoUri) {
+      const r = await rotateAndSave(item.photoUri, turned * 90, { format: 'jpeg', compress: PHOTO_QUALITY });
+      temps.push(r.uri);
+      photoUri = await saveJpeg(r, store);
+    }
+    return { cutoutUri, cutoutAspect: aspect, photoUri, shape: read.shape, turned };
+  } catch {
+    return null;
   } finally {
     await cleanUp(store, temps);
   }
